@@ -18,11 +18,14 @@ if (!process.env.QOO10_SAK) {
 // Generate unique SellerCode per test run (timestamp-based)
 const UNIQUE_SELLER_CODE = `DBGTEST${Date.now().toString().slice(-8)}`;
 
-// User category (from original tests)
-const USER_CATEGORY = '320002863';
+// Fixed test category (validated)
+const USER_CATEGORY = '300000546';
 
-// Known-good category from Qiita example
-const QIITA_CATEGORY = '320002604';
+// Keep compatibility constant aligned to fixed test category
+const QIITA_CATEGORY = '300000546';
+
+// Fixed test shipping template (validated)
+const FIXED_SHIPPING_NO = '471554';
 
 // Base required params (success-capable per Qoo10 docs + Qiita sample)
 // ShippingNo will be injected after lookup
@@ -36,7 +39,7 @@ function buildBaseParams(secondSubCat, adultParamName = 'AdultYN') {
     ItemQty: '99',
     AvailableDateType: '0',
     AvailableDateValue: '2',
-    ShippingNo: '', // Will be populated from GetSellerDeliveryGroupInfo
+    ShippingNo: FIXED_SHIPPING_NO,
     SellerCode: UNIQUE_SELLER_CODE,
     TaxRate: 'S',
     ExpireDate: '2030-12-31',
@@ -44,8 +47,8 @@ function buildBaseParams(secondSubCat, adultParamName = 'AdultYN') {
     ItemDescription: '<p>Test item for debugging SetNewGoods</p>',
     Weight: '500',
     PromotionName: 'Debug Test',
-    ProductionPlaceType: '1',
-    ProductionPlace: 'Japan',
+    ProductionPlaceType: '2',
+    ProductionPlace: 'Overseas',
     IndustrialCodeType: 'J',
     IndustrialCode: ''
   };
@@ -108,27 +111,9 @@ async function runBaseCaseTests(shippingNo) {
   const baseCases = [
     {
       name: 'Case 1',
-      description: 'User category + AdultYN',
+      description: 'Fixed category + AdultYN',
       secondSubCat: USER_CATEGORY,
       adultParamName: 'AdultYN'
-    },
-    {
-      name: 'Case 2',
-      description: 'User category + AudultYN (typo test)',
-      secondSubCat: USER_CATEGORY,
-      adultParamName: 'AudultYN'
-    },
-    {
-      name: 'Case 3',
-      description: 'Qiita category + AdultYN',
-      secondSubCat: QIITA_CATEGORY,
-      adultParamName: 'AdultYN'
-    },
-    {
-      name: 'Case 4',
-      description: 'Qiita category + AudultYN',
-      secondSubCat: QIITA_CATEGORY,
-      adultParamName: 'AudultYN'
     }
   ];
   
@@ -186,16 +171,10 @@ async function runTests() {
   console.log('\n=== Qoo10 SetNewGoods Debug Harness (A/B Tests) ===\n');
   console.log(`Unique SellerCode for this run: ${UNIQUE_SELLER_CODE}\n`);
   
-  // Step 1: Get valid ShippingNo
-  console.log('Step 1: Fetching valid ShippingNo from seller delivery groups...');
-  let shippingNo;
-  try {
-    shippingNo = await getValidShippingNo();
-    console.log(`✓ Using ShippingNo: ${shippingNo}\n`);
-  } catch (err) {
-    console.error(`✗ ${err.message}`);
-    process.exit(1);
-  }
+  // Step 1: Use fixed validated ShippingNo
+  console.log('Step 1: Using fixed ShippingNo...');
+  const shippingNo = FIXED_SHIPPING_NO;
+  console.log(`✓ Using ShippingNo: ${shippingNo}\n`);
   
   // Step 2: Run base case A/B tests
   console.log('Step 2: Running base case A/B tests...\n');

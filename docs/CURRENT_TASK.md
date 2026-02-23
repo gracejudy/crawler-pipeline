@@ -32,5 +32,6 @@
 - 테스트 결과: 전체 통과
 
 ## 다음 액션
-1. 구조 변경 PR 생성/정리(무기능변경, before/after 기록 포함) — 초안: `docs/PR_IMPLEMENTATION_backend_to_src_step1_3.md`
+1. ✅ 구조 변경 PR 생성/정리 완료 (무기능변경, before/after 기록 포함)
+   - PR: https://github.com/gracejudy/crawler-pipeline/pull/2
 2. 다음 마이그레이션 단계(스크립트 기본 경로 전환 또는 import 경로 정리) 착수 범위 확정

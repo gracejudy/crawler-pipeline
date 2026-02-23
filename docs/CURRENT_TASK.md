@@ -31,7 +31,13 @@
 - 결과: 로컬 `emergent`가 깨끗한 상태로 `origin/emergent`와 동기화됨
 - 테스트 결과: 전체 통과
 
+## 진행 업데이트 (2026-02-23 17:07 KST)
+- 다음 마이그레이션 범위 확정: **스크립트 기본 경로 전환** 우선 적용
+  - 이유: import 경로 정리보다 런타임 리스크가 낮고 롤백이 즉시 가능
+- 반영 기준:
+  - `backend/package.json`의 `start`를 `src` 진입점으로 전환
+  - fallback용 `start:legacy` 유지
+
 ## 다음 액션
-1. ✅ 구조 변경 PR 생성/정리 완료 (무기능변경, before/after 기록 포함)
-   - PR: https://github.com/gracejudy/crawler-pipeline/pull/2
-2. 다음 마이그레이션 단계(스크립트 기본 경로 전환 또는 import 경로 정리) 착수 범위 확정
+1. 스크립트 전환 후 API 회귀 확인 (categories/refresh-key/shipping-groups/register)
+2. import 경로 정리 착수 범위 문서화 (기능 변경 없이 경로 정리만)

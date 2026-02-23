@@ -21,7 +21,8 @@
 - [x] 새 경로 진입점은 래퍼 방식으로 추가
 
 ### Step 3: 스크립트 전환
-- [ ] npm scripts를 단계적으로 전환
+- [x] npm scripts 기본 경로를 `src`로 전환 (`start` → `node ../src/index.js`)
+- [x] fallback 스크립트 유지 (`start:legacy`)
 - [ ] 전환 후 API 회귀 확인
 
 ### Step 4: 안정화

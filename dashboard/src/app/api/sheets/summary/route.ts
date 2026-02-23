@@ -4,7 +4,7 @@ import { readFile } from "fs/promises";
 
 export async function GET() {
   try {
-    let email = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+    let email = process.env.GOOGLE_SHEETS_CLIENT_EMAIL?.trim();
     let key = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
     const serviceAccountPath = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_PATH;
@@ -15,7 +15,7 @@ export async function GET() {
       key = key || creds.private_key;
     }
 
-    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEET_ID;
+    const spreadsheetId = (process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEET_ID || "").trim();
     if (!email || !key || !spreadsheetId) {
       return NextResponse.json({ ok: false, error: "Missing Google Sheets env vars" }, { status: 400 });
     }

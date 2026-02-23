@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const pass = process.env.DASHBOARD_PASSCODE;
-  if (!pass) return NextResponse.next();
+  const pass = process.env.DASHBOARD_PASSCODE || "roughdiamond-8921";
 
   const auth = req.headers.get("authorization") || "";
   if (!auth.startsWith("Basic ")) {
@@ -10,7 +9,7 @@ export function middleware(req: NextRequest) {
   }
 
   const [, encoded] = auth.split(" ");
-  const decoded = Buffer.from(encoded, "base64").toString("utf8");
+  const decoded = atob(encoded);
   const [, password] = decoded.split(":");
   if (password !== pass) {
     return new NextResponse("Unauthorized", { status: 401, headers: { "WWW-Authenticate": 'Basic realm="RoughDiamond"' } });

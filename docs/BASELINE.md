@@ -17,7 +17,7 @@
 - `GET /api/qoo10/shipping-groups` → `{"ok":false,"error":"Missing env QOO10_SAK"}`
 
 ## Test baseline
-- Command: `cd backend && npm run test:qoo10:register`
+- Command: `cd backend && npm run test:qoo10:register` (공식 문서 기반 스모크)
 - Result: ❌ 실패
 - Reason: `Missing env QOO10_SAK`
 
@@ -28,3 +28,4 @@
 ## Decision
 - 마이그레이션 구조 작업은 계속 진행 가능.
 - Qoo10 연동 동등성 검증은 `QOO10_SAK` 제공 시점에 재수행 필요.
+- 비공식 API(`/api/qoo10/register`)는 검증 대상에서 제외.

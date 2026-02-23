@@ -39,5 +39,6 @@
   - fallback용 `start:legacy` 유지
 
 ## 다음 액션
-1. 스크립트 전환 후 API 회귀 확인 (categories/refresh-key/shipping-groups/register)
+1. 스크립트 전환 후 API 회귀 확인 (categories/refresh-key/shipping-groups)
 2. import 경로 정리 착수 범위 문서화 (기능 변경 없이 경로 정리만)
+3. 비공식 API(`/api/qoo10/register`)를 검증 대상 목록에서 제외 유지

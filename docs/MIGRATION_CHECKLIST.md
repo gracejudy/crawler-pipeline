@@ -9,7 +9,7 @@
 - [ ] `git pull --ff-only origin main`
 - [ ] `git rev-parse HEAD` 기록
 - [ ] `cd backend && node index.js` 기동 확인
-- [ ] `npm run test:qoo10:register` 실행 결과 저장
+- [ ] `npm run test:qoo10:register` 실행 결과 저장 (공식 문서 기반 스모크만)
 
 ## B. 마이그레이션 단계
 ### Step 1: 복제
@@ -33,7 +33,7 @@
 - [ ] `GET /api/qoo10/categories` 응답 구조 동일
 - [ ] `POST /api/qoo10/refresh-key` 동작 동일
 - [ ] `GET /api/qoo10/shipping-groups` 동작 동일
-- [ ] `POST /api/qoo10/register` 동작 동일
+- [ ] (제외) 비공식 API `/api/qoo10/register` 는 회귀 검증 범위에서 제외
 - [ ] 에러 응답 코드/메시지 포맷 동일
 - [ ] 환경변수(`QOO10_SAK`, `PORT`, `QOO10_DEBUG`) 동작 동일
 

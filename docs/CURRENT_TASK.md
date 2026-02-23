@@ -38,7 +38,20 @@
   - `backend/package.json`의 `start`를 `src` 진입점으로 전환
   - fallback용 `start:legacy` 유지
 
+## 진행 업데이트 (2026-02-23 21:48 KST)
+- RoughDiamond Dashboard 신규 구축/배포 완료
+  - URL: `https://roughdiamond-dashboard.vercel.app`
+  - Basic Auth: 활성 (`roughdiamond-8921`)
+  - OpenClaw 세션 연동 대상: `agent:main:main`
+- HOTFIX TASK 10 반영 완료
+  - `/api/openclaw/send|history|health` 프록시 라우트 추가
+  - Chat Send 배선 보강(클릭 핸들러/전송 상태/오류·타임아웃 표시/구조화 로그)
+  - Qoo10 실행 버튼 RUNNING 잠금/상태 배지 반영
+  - Overview 카드화 + 모바일 안전영역/하단 네비 안정화
+- 작업 브랜치
+  - `oc/roughdiamond-dashboard` (origin push 완료)
+
 ## 다음 액션
-1. 스크립트 전환 후 API 회귀 확인 (categories/refresh-key/shipping-groups)
-2. import 경로 정리 착수 범위 문서화 (기능 변경 없이 경로 정리만)
-3. 비공식 API(`/api/qoo10/register`)를 검증 대상 목록에서 제외 유지
+1. OpenClaw `/sessions/send` 응답 포맷 재확인 후 Chat 성공 응답 판정 로직 미세조정
+2. Chat 탭 실세션 왕복(전송→응답) E2E 검증 캡처
+3. 마이그레이션 트랙(backend→src) 액션 재개: import 경로 정리 범위 확정

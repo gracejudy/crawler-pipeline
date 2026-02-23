@@ -27,7 +27,24 @@ export async function GET() {
     const sheets = google.sheets({ version: "v4", auth });
     const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "coupang_datas!A:Z" });
     const rows = res.data.values ?? [];
-    return NextResponse.json({ ok: true, rowCount: Math.max(rows.length - 1, 0), headers: rows[0] ?? [] });
+    const headers = rows[0] ?? [];
+    const body = rows.slice(1);
+
+    const idx = (keys: string[]) => headers.findIndex((h: string) => keys.some((k) => String(h).toLowerCase().includes(k)));
+    const regIdx = idx(["registered", "등록", "status"]);
+    const updIdx = idx(["needsupdate", "업데이트", "update"]);
+
+    const registeredCount = regIdx >= 0 ? body.filter((r: string[]) => /1|y|yes|done|registered|완료|등록/i.test(String(r[regIdx] || ""))).length : 0;
+    const needsUpdateCount = updIdx >= 0 ? body.filter((r: string[]) => /1|y|yes|need|true|필요/i.test(String(r[updIdx] || ""))).length : 0;
+
+    return NextResponse.json({
+      ok: true,
+      rowCount: Math.max(rows.length - 1, 0),
+      registeredCount,
+      needsUpdateCount,
+      lastSyncTime: new Date().toISOString(),
+      headers,
+    });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message || "sheet error" }, { status: 500 });
   }

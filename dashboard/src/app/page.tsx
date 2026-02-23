@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Tab = "overview" | "registration" | "tasks" | "logs" | "chat";
+type LogLevel = "INFO" | "ERROR";
 
 const tabs: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
@@ -19,87 +20,165 @@ export default function Home() {
   const [job, setJob] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [prompt, setPrompt] = useState("");
-  const [logs, setLogs] = useState<string[]>([]);
   const [chatConfig, setChatConfig] = useState<any>(null);
+  const [chatHealth, setChatHealth] = useState<any>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const [logs, setLogs] = useState<{ ts: string; level: LogLevel; event: string; detail?: string }[]>([]);
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const addLog = (level: LogLevel, event: string, detail?: string) => {
+    setLogs((prev) => [
+      { ts: new Date().toLocaleTimeString(), level, event, detail },
+      ...prev,
+    ]);
+  };
+
   const loadSummary = async () => {
-    const r = await fetch("/api/sheets/summary");
-    setSummary(await r.json());
+    const r = await fetch("/api/sheets/summary", { cache: "no-store" });
+    const d = await r.json();
+    setSummary(d);
   };
 
   const loadHistory = async () => {
-    const r = await fetch("/api/chat/history");
+    const r = await fetch("/api/openclaw/history", { cache: "no-store" });
     const d = await r.json();
     setHistory(d.messages || []);
   };
 
+  const runHealth = async () => {
+    const r = await fetch("/api/openclaw/health", { cache: "no-store" });
+    const d = await r.json();
+    setChatHealth(d);
+    addLog(d.ok ? "INFO" : "ERROR", "chat.health", JSON.stringify(d));
+  };
+
   useEffect(() => {
     loadSummary();
-    loadHistory();
     fetch("/api/chat/config").then((r) => r.json()).then(setChatConfig).catch(() => null);
   }, []);
+
+  useEffect(() => {
+    if (tab !== "chat") return;
+    loadHistory();
+    const t = setInterval(loadHistory, 3000);
+    return () => clearInterval(t);
+  }, [tab]);
+
   useEffect(() => {
     if (!jobId) return;
     const t = setInterval(async () => {
-      const r = await fetch(`/api/registration/status?jobId=${jobId}`);
+      const r = await fetch(`/api/registration/status?jobId=${jobId}`, { cache: "no-store" });
       const d = await r.json();
       setJob(d);
-      if (d?.status === "done" || d?.status === "error") clearInterval(t);
+
+      if (d?.status === "done") {
+        addLog("INFO", "qoo10.job.end", "done");
+        clearInterval(t);
+      }
+      if (d?.status === "error") {
+        addLog("ERROR", "qoo10.job.end", "error");
+        clearInterval(t);
+      }
     }, 1800);
     return () => clearInterval(t);
   }, [jobId]);
 
   useEffect(() => {
-    const t = setInterval(loadHistory, 3000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [history]);
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [history]);
 
   const runRegistration = async () => {
+    if (job?.status === "running") return;
+    addLog("INFO", "qoo10.job.start");
     const r = await fetch("/api/registration/run", { method: "POST" });
     const d = await r.json();
     setJobId(d.jobId);
-    setLogs((p) => [`[${new Date().toLocaleTimeString()}] registration started`, ...p]);
+    setJob({ status: "running" });
   };
 
   const sendPrompt = async (text?: string) => {
+    console.log("SEND_TRIGGERED");
     const message = (text ?? prompt).trim();
-    if (!message) return;
-    await fetch("/api/chat/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    setPrompt("");
-    setTimeout(loadHistory, 500);
+    if (!message || isSending) return;
+
+    addLog("INFO", "chat.send.attempt", message.slice(0, 80));
+    setIsSending(true);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const r = await fetch("/api/openclaw/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+        signal: controller.signal,
+      });
+      const d = await r.json();
+      if (!r.ok || !d?.ok) throw new Error(d?.error || "send failed");
+
+      setPrompt("");
+      addLog("INFO", "chat.send.success");
+      setTimeout(loadHistory, 500);
+    } catch (e: any) {
+      const msg = e?.name === "AbortError" ? "Chat send timeout (>10s)" : `Chat send failed: ${e.message}`;
+      setToast(msg);
+      addLog("ERROR", "chat.send.error", msg);
+      setTimeout(() => setToast(null), 3500);
+    } finally {
+      clearTimeout(timeout);
+      setIsSending(false);
+    }
   };
 
   const parsedProposal = useMemo(() => {
     const last = history[history.length - 1]?.text || "";
     const m = last.match(/```json\n([\s\S]*?)\n```/);
     if (!m) return null;
-    try { return JSON.parse(m[1]); } catch { return null; }
+    try {
+      return JSON.parse(m[1]);
+    } catch {
+      return null;
+    }
   }, [history]);
 
   const confirmProposal = async (confirm: boolean) => {
     await sendPrompt(confirm ? `CONFIRM:\n${JSON.stringify(parsedProposal)}` : "CANCEL proposal");
   };
 
+  const statusBadge = job?.status === "running" ? "RUNNING" : job?.status === "error" ? "ERROR" : "IDLE";
+
   return (
-    <main className="safe-wrap pb-24 pt-4">
+    <main className="safe-wrap pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 overflow-x-hidden">
+      {toast && <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-rose-500 text-white text-sm px-3 py-2 rounded-xl">{toast}</div>}
+
       <header className="glass rounded-2xl p-4 mb-4">
         <h1 className="text-xl font-semibold">💎 RoughDiamond Dashboard</h1>
         <p className="text-sm text-slate-300">Coupang → Qoo10 Control Room</p>
       </header>
 
       <section className="glass rounded-2xl p-4 min-h-[60vh]">
-        {tab === "overview" && <pre className="text-xs overflow-auto">{JSON.stringify(summary, null, 2)}</pre>}
+        {tab === "overview" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Card title="Total Rows" value={String(summary?.rowCount ?? "-")} />
+            <Card title="Registered" value={String(summary?.registeredCount ?? "-")} />
+            <Card title="Needs Update" value={String(summary?.needsUpdateCount ?? "-")} />
+            <Card title="Last Sync" value={summary?.lastSyncTime || "-"} />
+          </div>
+        )}
 
         {tab === "registration" && (
           <div className="space-y-3">
-            <button onClick={runRegistration} className="px-4 py-3 rounded-xl bg-cyan-500 text-black font-semibold w-full">Run Registration</button>
+            <div className="text-xs inline-flex px-2 py-1 rounded-lg bg-white/10">Status: {statusBadge}</div>
+            <button
+              onClick={runRegistration}
+              disabled={job?.status === "running"}
+              className="px-4 py-3 rounded-xl bg-cyan-500 text-black font-semibold w-full disabled:opacity-40"
+            >
+              {job?.status === "running" ? "Running..." : "Run Registration"}
+            </button>
             <div className="text-sm">Job: {jobId || "-"}</div>
             <pre className="text-xs overflow-auto max-h-72">{JSON.stringify(job || { status: "idle" }, null, 2)}</pre>
           </div>
@@ -109,32 +188,39 @@ export default function Home() {
 
         {tab === "logs" && (
           <div className="space-y-2">
-            {logs.map((l, i) => <div key={i} className="text-xs p-2 rounded bg-white/5">{l}</div>)}
-            {!logs.length && <div className="text-sm text-slate-300">No alerts yet</div>}
+            {logs.map((l, i) => (
+              <div key={i} className="text-xs p-2 rounded bg-white/5">
+                <b className={l.level === "ERROR" ? "text-rose-300" : "text-cyan-300"}>{l.level}</b> [{l.ts}] {l.event}
+                {l.detail ? <div className="text-slate-300 mt-1 break-all">{l.detail}</div> : null}
+              </div>
+            ))}
+            {!logs.length && <div className="text-sm text-slate-300">No events yet</div>}
           </div>
         )}
 
         {tab === "chat" && (
-          <div className="flex flex-col gap-3 h-[65vh]">
+          <div className="flex flex-col gap-3 h-[65vh] max-h-[65vh]">
             <div className="glass rounded-xl p-2 text-xs">
               <div>OpenClaw Base: {chatConfig?.base || "(unset)"}</div>
               <div>Session: {chatConfig?.session || "(unset)"}</div>
               <div>Token: {chatConfig?.hasToken ? "configured" : "missing"}</div>
+              <div className="mt-2 flex items-center gap-2">
+                <button onClick={runHealth} className="text-xs px-3 py-1 rounded-lg bg-white/10">Health Check</button>
+                <span>{chatHealth ? `${chatHealth.ok ? "OK" : "FAIL"} ${chatHealth.latencyMs}ms` : "-"}</span>
+              </div>
             </div>
+
             <div className="flex flex-wrap gap-2">
-              {[
-                "Build Dashboard Task 0",
-                "Run Registration",
-                "Summarize Errors",
-              ].map((t) => (
+              {["Build Dashboard Task 0", "Run Registration", "Summarize Errors"].map((t) => (
                 <button key={t} onClick={() => sendPrompt(t)} className="text-xs px-3 py-2 rounded-xl bg-white/10">{t}</button>
               ))}
             </div>
-            <div className="flex-1 overflow-auto rounded-xl bg-black/20 p-3">
+
+            <div className="flex-1 overflow-y-auto overflow-x-hidden rounded-xl bg-black/20 p-3">
               {history.map((m, i) => (
                 <div key={i} className="mb-2 text-sm">
                   <b className="text-cyan-300">{m.role || "msg"}</b>
-                  <div className="whitespace-pre-wrap">{m.text || ""}</div>
+                  <div className="whitespace-pre-wrap break-words">{m.text || ""}</div>
                 </div>
               ))}
               <div ref={chatEndRef} />
@@ -143,7 +229,7 @@ export default function Home() {
             {parsedProposal && (
               <div className="glass rounded-xl p-3">
                 <div className="text-xs mb-2">Proposed Action</div>
-                <pre className="text-xs overflow-auto">{JSON.stringify(parsedProposal, null, 2)}</pre>
+                <pre className="text-xs overflow-auto max-h-32">{JSON.stringify(parsedProposal, null, 2)}</pre>
                 <div className="flex gap-2 mt-2">
                   <button onClick={() => confirmProposal(true)} className="flex-1 py-2 rounded bg-emerald-400 text-black font-semibold">Confirm</button>
                   <button onClick={() => confirmProposal(false)} className="flex-1 py-2 rounded bg-rose-400 text-black font-semibold">Cancel</button>
@@ -151,23 +237,47 @@ export default function Home() {
               </div>
             )}
 
-            <div className="flex gap-2 sticky bottom-0">
-              <input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Prompt to current OpenClaw session" className="flex-1 rounded-xl px-3 py-3 bg-white/10 outline-none" />
-              <button onClick={() => sendPrompt()} className="px-4 rounded-xl bg-cyan-400 text-black font-bold">Send</button>
+            <div className="flex gap-2 sticky bottom-0 pb-[env(safe-area-inset-bottom)]">
+              <input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Prompt to current OpenClaw session"
+                className="flex-1 rounded-xl px-3 py-3 bg-white/10 outline-none"
+              />
+              <button
+                onClick={() => sendPrompt()}
+                disabled={isSending}
+                className="px-4 rounded-xl bg-cyan-400 text-black font-bold disabled:opacity-40"
+              >
+                {isSending ? "Sending..." : "Send"}
+              </button>
             </div>
           </div>
         )}
       </section>
 
-      <nav className="fixed left-0 right-0 bottom-0 p-2">
+      <nav className="fixed left-0 right-0 bottom-0 p-2 z-40 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <div className="safe-wrap glass rounded-2xl p-2 grid grid-cols-5 gap-1">
           {tabs.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`text-xs py-2 rounded-xl ${tab === t.key ? "bg-cyan-400 text-black font-semibold" : "bg-white/10"}`}>
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`text-xs py-2 rounded-xl ${tab === t.key ? "bg-cyan-400 text-black font-semibold" : "bg-white/10"}`}
+            >
               {t.label}
             </button>
           ))}
         </div>
       </nav>
     </main>
+  );
+}
+
+function Card({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="glass rounded-xl p-3 min-h-[86px]">
+      <div className="text-xs text-slate-300">{title}</div>
+      <div className="text-lg font-semibold mt-2 break-words">{value}</div>
+    </div>
   );
 }

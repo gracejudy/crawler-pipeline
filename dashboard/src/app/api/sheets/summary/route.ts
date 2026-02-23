@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
+import { readFile } from "fs/promises";
 
 export async function GET() {
   try {
-    const email = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
-    const key = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n");
-    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
+    let email = process.env.GOOGLE_SHEETS_CLIENT_EMAIL;
+    let key = process.env.GOOGLE_SHEETS_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+    const serviceAccountPath = process.env.GOOGLE_SERVICE_ACCOUNT_JSON_PATH;
+    if ((!email || !key) && serviceAccountPath) {
+      const raw = await readFile(serviceAccountPath, "utf8");
+      const creds = JSON.parse(raw);
+      email = email || creds.client_email;
+      key = key || creds.private_key;
+    }
+
+    const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.GOOGLE_SHEET_ID;
     if (!email || !key || !spreadsheetId) {
       return NextResponse.json({ ok: false, error: "Missing Google Sheets env vars" }, { status: 400 });
     }

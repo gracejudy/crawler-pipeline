@@ -24,12 +24,21 @@ type ProjectTask = {
   isActing?: boolean;
 };
 
+type ProjectIssueStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
+
+type ProjectIssue = {
+  title: string;
+  description: string;
+  status: ProjectIssueStatus;
+};
+
 type ProjectItem = {
   name: string;
   purpose: string;
   contextPath: string;
   openUrl: string;
   tasks: ProjectTask[];
+  issues?: ProjectIssue[];
 };
 
 const statusClass: Record<TaskStatus, string> = {
@@ -83,6 +92,28 @@ const initialProjectOverview: ProjectItem[] = [
         title: "상태/로그 가독성 개선",
         description: "모바일 기준 배지/로그 밀도 조정 및 에러 표현 정리",
         status: "TODO" as TaskStatus,
+      },
+      {
+        title: "Issues 섹션(tasks와 분리) 추가",
+        description: "프로젝트별 이슈를 task와 별도로 등록/표시하는 섹션 추가",
+        status: "TODO" as TaskStatus,
+      },
+    ],
+    issues: [
+      {
+        title: "최신 빌드 커밋번호 + Vercel 배포번호 표현",
+        description: "대시보드에 최신 빌드의 git commit과 Vercel deployment 식별자를 표시",
+        status: "TODO",
+      },
+      {
+        title: "Task 실행 버튼 오류 해결 및 정상동작",
+        description: "task 실행 버튼 클릭 시 발생하는 에러를 해결하고 정상 동작 보장",
+        status: "TODO",
+      },
+      {
+        title: "클라이언트 에러 서버 로그화",
+        description: "클라이언트에서 발생하는 모든 에러를 서버에서 수집/로그화하여 사용자 수동 전달 의존 제거",
+        status: "TODO",
       },
     ],
   },
@@ -417,6 +448,23 @@ export default function Home() {
                         ))}
                       </div>
                     </details>
+
+                    {p.issues?.length ? (
+                      <details className="mt-2 rounded-md bg-black/20 p-2" open>
+                        <summary className="cursor-pointer text-slate-200 font-semibold">Issues (tasks와 분리) ({p.issues.length})</summary>
+                        <div className="mt-2 space-y-2">
+                          {p.issues.map((issue, i) => (
+                            <div key={`${p.name}-issue-${i}`} className="rounded-md bg-white/5 p-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-semibold text-slate-100">{issue.title}</div>
+                                <span className={`px-2 py-0.5 rounded text-[10px] ${statusClass[issue.status as TaskStatus]}`}>{issue.status}</span>
+                              </div>
+                              <div className="mt-1 text-slate-300">{issue.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
                   </div>
                 ))}
               </div>

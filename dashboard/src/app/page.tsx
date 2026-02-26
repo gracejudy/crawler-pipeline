@@ -13,18 +13,61 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "chat", label: "Chat" },
 ];
 
+type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
+
+const statusClass: Record<TaskStatus, string> = {
+  TODO: "bg-slate-500/30 text-slate-200",
+  IN_PROGRESS: "bg-cyan-500/30 text-cyan-200",
+  DONE: "bg-emerald-500/30 text-emerald-200",
+  BLOCKED: "bg-rose-500/30 text-rose-200",
+};
+
 const projectOverview = [
   {
     name: "crawler-pipeline (CORE)",
     purpose: "Qoo10 상품 API 등록/업데이트 도메인 처리",
     contextPath: "/Users/judy/dev/crawler-pipeline/docs/PROJECT_CONTEXT.md",
     openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/docs/PROJECT_CONTEXT.md",
+    tasks: [
+      {
+        title: "Import 경로 정리 범위 확정",
+        description: "backend→src 전환 이후 import 경로를 어떤 단위로 정리할지 결정",
+        status: "IN_PROGRESS" as TaskStatus,
+      },
+      {
+        title: "start 스크립트 src 기본 전환 검증",
+        description: "start:legacy fallback 유지 상태에서 src 기본 전환 안정성 점검",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        title: "Qoo10 등록/업데이트 E2E 확인",
+        description: "실데이터 기준 등록/업데이트 API 플로우 재검증 및 로그 점검",
+        status: "TODO" as TaskStatus,
+      },
+    ],
   },
   {
     name: "roughdiamond-dashboard (DASHBOARD)",
     purpose: "진행 중 프로젝트 Tasks/Logs/Chat 운영 뷰",
     contextPath: "/Users/judy/dev/crawler-pipeline/dashboard/docs/PROJECT_CONTEXT.md",
     openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/dashboard/docs/PROJECT_CONTEXT.md",
+    tasks: [
+      {
+        title: "Project Overview 개선",
+        description: "프로젝트별 task 리스트를 접기/펴기 UI로 제공",
+        status: "IN_PROGRESS" as TaskStatus,
+      },
+      {
+        title: "OpenClaw Chat 왕복 E2E 캡처",
+        description: "전송→응답 성공 판정/오류 노출 흐름을 캡처해 검증",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        title: "상태/로그 가독성 개선",
+        description: "모바일 기준 배지/로그 밀도 조정 및 에러 표현 정리",
+        status: "TODO" as TaskStatus,
+      },
+    ],
   },
 ];
 
@@ -216,6 +259,23 @@ export default function Home() {
                         Open
                       </button>
                     </div>
+
+                    <details className="mt-3 rounded-md bg-black/20 p-2" open>
+                      <summary className="cursor-pointer text-slate-200 font-semibold">Tasks ({p.tasks.length})</summary>
+                      <div className="mt-2 space-y-2">
+                        {p.tasks.map((task, idx) => (
+                          <div key={`${p.name}-${idx}`} className="rounded-md bg-white/5 p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="font-semibold text-slate-100">{task.title}</div>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${statusClass[task.status]}`}>
+                                {task.status}
+                              </span>
+                            </div>
+                            <div className="mt-1 text-slate-300">{task.description}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   </div>
                 ))}
               </div>

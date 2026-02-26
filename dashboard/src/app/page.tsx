@@ -22,7 +22,7 @@ const statusClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-rose-500/30 text-rose-200",
 };
 
-const projectOverview = [
+const initialProjectOverview = [
   {
     name: "crawler-pipeline (CORE)",
     purpose: "Qoo10 상품 API 등록/업데이트 도메인 처리",
@@ -55,7 +55,7 @@ const projectOverview = [
       {
         title: "Project Overview 개선",
         description: "프로젝트별 task 리스트를 접기/펴기 UI로 제공",
-        status: "IN_PROGRESS" as TaskStatus,
+        status: "DONE" as TaskStatus,
       },
       {
         title: "OpenClaw Chat 왕복 E2E 캡처",
@@ -83,6 +83,7 @@ export default function Home() {
   const [isSending, setIsSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ ts: string; level: LogLevel; event: string; detail?: string }[]>([]);
+  const [projectOverview, setProjectOverview] = useState(initialProjectOverview);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +92,19 @@ export default function Home() {
       { ts: new Date().toLocaleTimeString(), level, event, detail },
       ...prev,
     ]);
+  };
+
+  const updateProjectTaskStatus = (projectName: string, taskTitle: string, status: TaskStatus) => {
+    setProjectOverview((prev) =>
+      prev.map((project) => {
+        if (project.name !== projectName) return project;
+        return {
+          ...project,
+          tasks: project.tasks.map((task) => (task.title === taskTitle ? { ...task, status } : task)),
+        };
+      }),
+    );
+    addLog("INFO", "overview.task.status_changed", `${projectName} | ${taskTitle} -> ${status}`);
   };
 
   const loadSummary = async () => {
@@ -272,6 +286,17 @@ export default function Home() {
                               </span>
                             </div>
                             <div className="mt-1 text-slate-300">{task.description}</div>
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as TaskStatus[]).map((s) => (
+                                <button
+                                  key={s}
+                                  onClick={() => updateProjectTaskStatus(p.name, task.title, s)}
+                                  className={`px-2 py-0.5 rounded text-[10px] ${task.status === s ? "bg-cyan-500/40 text-cyan-100" : "bg-white/10 text-slate-300"}`}
+                                >
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>

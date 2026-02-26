@@ -13,6 +13,19 @@ const tabs: { key: Tab; label: string }[] = [
   { key: "chat", label: "Chat" },
 ];
 
+const projectOverview = [
+  {
+    name: "crawler-pipeline (CORE)",
+    purpose: "Qoo10 상품 API 등록/업데이트 도메인 처리",
+    contextPath: "/Users/judy/dev/crawler-pipeline/docs/PROJECT_CONTEXT.md",
+  },
+  {
+    name: "roughdiamond-dashboard (DASHBOARD)",
+    purpose: "진행 중 프로젝트 Tasks/Logs/Chat 운영 뷰",
+    contextPath: "/Users/judy/dev/crawler-pipeline/dashboard/docs/PROJECT_CONTEXT.md",
+  },
+];
+
 export default function Home() {
   const [tab, setTab] = useState<Tab>("registration");
   const [summary, setSummary] = useState<any>(null);
@@ -161,11 +174,26 @@ export default function Home() {
 
       <section className="glass rounded-2xl p-4 min-h-[60vh]">
         {tab === "overview" && (
-          <div className="grid grid-cols-2 gap-3">
-            <Card title="Total Rows" value={String(summary?.rowCount ?? "-")} />
-            <Card title="Registered" value={String(summary?.registeredCount ?? "-")} />
-            <Card title="Needs Update" value={String(summary?.needsUpdateCount ?? "-")} />
-            <Card title="Last Sync" value={summary?.lastSyncTime || "-"} />
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Card title="Total Rows" value={String(summary?.rowCount ?? "-")} />
+              <Card title="Registered" value={String(summary?.registeredCount ?? "-")} />
+              <Card title="Needs Update" value={String(summary?.needsUpdateCount ?? "-")} />
+              <Card title="Last Sync" value={summary?.lastSyncTime || "-"} />
+            </div>
+
+            <div className="glass rounded-xl p-3">
+              <div className="text-sm font-semibold mb-2">Project Overview</div>
+              <div className="space-y-2">
+                {projectOverview.map((p) => (
+                  <div key={p.name} className="rounded-lg bg-white/5 p-3 text-xs">
+                    <div className="font-semibold text-cyan-300">{p.name}</div>
+                    <div className="text-slate-200 mt-1">{p.purpose}</div>
+                    <div className="text-slate-400 mt-1 break-all">{p.contextPath}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 
+function asRecord(data: unknown): Record<string, unknown> | null {
+  return data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+}
+
 function isUpstreamAccepted(upstreamOk: boolean, data: unknown) {
   if (!upstreamOk) return false;
-  if (!data || typeof data !== "object") return true;
-  if (data.ok === false) return false;
-  if (typeof data.error === "string" && data.error.trim()) return false;
+  const d = asRecord(data);
+  if (!d) return true;
+  if (d.ok === false) return false;
+  if (typeof d.error === "string" && d.error.trim()) return false;
   return true;
 }
 
 function extractError(data: unknown, fallback = "send failed") {
-  if (data && typeof data === "object") {
-    if (typeof data.error === "string" && data.error.trim()) return data.error;
-    if (typeof data.message === "string" && data.message.trim()) return data.message;
-  }
+  const d = asRecord(data);
+  if (!d) return fallback;
+  if (typeof d.error === "string" && d.error.trim()) return d.error;
+  if (typeof d.message === "string" && d.message.trim()) return d.message;
   return fallback;
 }
 

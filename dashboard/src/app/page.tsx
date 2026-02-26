@@ -319,6 +319,9 @@ export default function Home() {
       <header className="glass rounded-2xl p-4 mb-4">
         <h1 className="text-xl font-semibold">💎 RoughDiamond Dashboard</h1>
         <p className="text-sm text-slate-300">Coupang → Qoo10 Control Room</p>
+        <p className="text-[11px] text-slate-400 mt-1 break-all">
+          Deploy: {chatConfig?.deploy?.vercelEnv || "local"} | {chatConfig?.deploy?.gitBranch || "-"} | {(chatConfig?.deploy?.gitCommit || "-").slice(0, 8)}
+        </p>
       </header>
 
       <section className="glass rounded-2xl p-4 min-h-[60vh]">
@@ -450,6 +453,10 @@ export default function Home() {
               <div>OpenClaw Base: {chatConfig?.base || "(unset)"}</div>
               <div>Session: {chatConfig?.session || "(unset)"}</div>
               <div>Token: {chatConfig?.hasToken ? "configured" : "missing"}</div>
+              <div>Deploy Env: {chatConfig?.deploy?.vercelEnv || "local"}</div>
+              <div>Deploy Branch: {chatConfig?.deploy?.gitBranch || "-"}</div>
+              <div>Deploy Commit: {(chatConfig?.deploy?.gitCommit || "-").slice(0, 12)}</div>
+              <div>Deploy URL: {chatConfig?.deploy?.vercelUrl || "-"}</div>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={runHealth} className="text-xs px-3 py-1 rounded-lg bg-white/10">Health Check</button>
                 <span>{chatHealth ? `${chatHealth.ok ? "OK" : "FAIL"} ${chatHealth.latencyMs}ms` : "-"}</span>

@@ -30,17 +30,51 @@ function parseMaybeJson(raw: string): unknown {
   }
 }
 
-function normalizeBase(base: string) {
-  return base.replace(/\/+$/, "");
+function stripTrailingSlash(s: string) {
+  return s.replace(/\/+$/, "");
+}
+
+function deriveBaseCandidates(base: string) {
+  const raw = stripTrailingSlash(base.trim());
+  const cands = new Set<string>();
+  cands.add(raw);
+
+  // 흔한 오입력 보정: .../sessions 또는 .../sessions/send 를 base로 넣은 경우
+  if (raw.endsWith("/sessions/send")) cands.add(raw.replace(/\/sessions\/send$/, ""));
+  if (raw.endsWith("/sessions")) cands.add(raw.replace(/\/sessions$/, ""));
+
+  // URL 형태면 pathname도 분석해서 루트 후보를 추가
+  try {
+    const u = new URL(raw);
+    const p = stripTrailingSlash(u.pathname);
+    const origin = `${u.protocol}//${u.host}`;
+    cands.add(origin + p);
+    if (p.endsWith("/sessions/send")) cands.add(origin + p.replace(/\/sessions\/send$/, ""));
+    if (p.endsWith("/sessions")) cands.add(origin + p.replace(/\/sessions$/, ""));
+  } catch {
+    // raw가 URL이 아니면 무시
+  }
+
+  return [...cands].map(stripTrailingSlash).filter(Boolean);
 }
 
 function buildSendCandidates(base: string) {
-  const b = normalizeBase(base);
-  const hasApiSuffix = b.endsWith("/api");
-  const candidates = hasApiSuffix
-    ? [`${b}/sessions/send`, `${b}/v1/sessions/send`]
-    : [`${b}/sessions/send`, `${b}/api/sessions/send`, `${b}/v1/sessions/send`];
-  return [...new Set(candidates)];
+  const roots = deriveBaseCandidates(base);
+  const endpoints: string[] = [];
+
+  for (const r of roots) {
+    const hasApiSuffix = r.endsWith("/api");
+    if (hasApiSuffix) {
+      endpoints.push(`${r}/sessions/send`);
+      endpoints.push(`${r}/v1/sessions/send`);
+    } else {
+      endpoints.push(`${r}/sessions/send`);
+      endpoints.push(`${r}/api/sessions/send`);
+      endpoints.push(`${r}/v1/sessions/send`);
+    }
+  }
+
+  return [...new Set(endpoints.map(stripTrailingSlash))];
 }
 
 export async function POST(req: Request) {
@@ -60,11 +94,13 @@ export async function POST(req: Request) {
     }
 
     const endpoints = buildSendCandidates(base);
+    const attempts: Array<{ endpoint: string; status: number; statusText: string; error: string; bodySnippet: string }> = [];
+
     let lastStatus = 0;
     let lastStatusText = "";
     let lastError = "upstream request failed";
     let lastData: unknown = {};
-    let selectedEndpoint = endpoints[0];
+    let selectedEndpoint = endpoints[0] || `${base}/sessions/send`;
 
     for (const endpoint of endpoints) {
       selectedEndpoint = endpoint;
@@ -80,11 +116,11 @@ export async function POST(req: Request) {
       const raw = await upstream.text();
       const data = parseMaybeJson(raw);
       const accepted = isUpstreamAccepted(upstream.ok, data);
-      const error = accepted ? null : extractError(data, `upstream ${upstream.status}`);
+      const error = accepted ? "" : extractError(data, `upstream ${upstream.status}`);
 
       if (accepted) {
         return NextResponse.json(
-          { ok: true, accepted: true, status: upstream.status, endpoint, data, error: null },
+          { ok: true, accepted: true, status: upstream.status, endpoint, data, error: null, attempts },
           { status: 200 },
         );
       }
@@ -94,12 +130,15 @@ export async function POST(req: Request) {
       lastError = error || `upstream ${upstream.status}`;
       lastData = data;
 
+      const bodySnippet = raw.slice(0, 800);
+      attempts.push({ endpoint, status: upstream.status, statusText: upstream.statusText, error: lastError, bodySnippet });
+
       console.error("[openclaw/send] upstream_error", {
         endpoint,
         status: upstream.status,
         statusText: upstream.statusText,
         error: lastError,
-        bodySnippet: raw.slice(0, 800),
+        bodySnippet,
       });
 
       // 404/405는 경로 미스 가능성이 높아서 다음 후보를 시도한다.
@@ -113,9 +152,11 @@ export async function POST(req: Request) {
         ok: false,
         accepted: false,
         status: lastStatus || 502,
+        statusText: lastStatusText,
         endpoint: selectedEndpoint,
         data: lastData,
         error: lastError,
+        attempts,
       },
       { status: 502 },
     );

@@ -104,6 +104,12 @@ export default function Home() {
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const apiUrl = (path: string) => {
+    if (typeof window === "undefined") return path;
+    // Basic Auth userinfo가 현재 URL에 포함되어 있어도 안전한 origin 기준으로 재구성
+    return new URL(path, window.location.origin).toString();
+  };
+
   const addLog = (level: LogLevel, event: string, detail?: string) => {
     // 요청사항: warning/info 제외, error만 기록
     if (level !== "ERROR") return;
@@ -131,7 +137,7 @@ export default function Home() {
   };
 
   const sendTaskCommand = async (message: string) => {
-    const r = await fetch("/api/openclaw/send", {
+    const r = await fetch(apiUrl("/api/openclaw/send"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
@@ -269,7 +275,7 @@ export default function Home() {
     const timeout = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const r = await fetch("/api/openclaw/send", {
+      const r = await fetch(apiUrl("/api/openclaw/send"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),

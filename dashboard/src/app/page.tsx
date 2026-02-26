@@ -111,7 +111,7 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-T05",
         title: "타이틀 ID 체계 적용",
         description: "모든 task/issue에 고유 ID를 부여하고 ID + title 형식으로 표시",
-        status: "TODO" as TaskStatus,
+        status: "DONE" as TaskStatus,
       },
     ],
     issues: [

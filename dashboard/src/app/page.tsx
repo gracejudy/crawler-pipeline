@@ -361,11 +361,28 @@ export default function Home() {
                       <div className="mt-2 space-y-2">
                         {p.tasks.map((task, idx) => (
                           <div key={`${p.name}-${idx}`} className="rounded-md bg-white/5 p-2">
-                            <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-slate-100">{task.title}</div>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${statusClass[task.status]}`}>
-                                {task.status}
-                              </span>
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {task.status !== "DONE" && (
+                                  <button
+                                    onClick={() => (task.isRunning ? handleTaskStop(p.name, task) : handleTaskRun(p.name, task))}
+                                    disabled={task.isActing}
+                                    className={`px-2 py-1 rounded text-[11px] font-semibold ${task.isRunning ? "bg-amber-500/30 text-amber-100" : "bg-emerald-500/30 text-emerald-100"} disabled:opacity-50`}
+                                  >
+                                    {task.isActing ? "처리중..." : task.isRunning ? "중지" : "실행"}
+                                  </button>
+                                )}
+                                {task.status === "TODO" && task.rollbackReady && (
+                                  <button
+                                    onClick={() => handleTaskRollback(p.name, task)}
+                                    disabled={task.isActing}
+                                    className="px-2 py-1 rounded text-[11px] font-semibold bg-rose-500/30 text-rose-100 disabled:opacity-50"
+                                  >
+                                    롤백
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             <div className="mt-1 text-slate-300">{task.description}</div>
                             <div className="mt-2 flex flex-wrap gap-1">
@@ -378,26 +395,6 @@ export default function Home() {
                                   TAG:{s}
                                 </button>
                               ))}
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              <button
-                                onClick={() => (task.isRunning ? handleTaskStop(p.name, task) : handleTaskRun(p.name, task))}
-                                disabled={task.isActing}
-                                className={`px-2 py-1 rounded text-[11px] font-semibold ${task.isRunning ? "bg-amber-500/30 text-amber-100" : "bg-emerald-500/30 text-emerald-100"} disabled:opacity-50`}
-                              >
-                                {task.isActing ? "처리중..." : task.isRunning ? "중지" : "실행"}
-                              </button>
-
-                              {task.status === "TODO" && task.rollbackReady && (
-                                <button
-                                  onClick={() => handleTaskRollback(p.name, task)}
-                                  disabled={task.isActing}
-                                  className="px-2 py-1 rounded text-[11px] font-semibold bg-rose-500/30 text-rose-100 disabled:opacity-50"
-                                >
-                                  롤백
-                                </button>
-                              )}
                             </div>
                           </div>
                         ))}

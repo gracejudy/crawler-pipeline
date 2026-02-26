@@ -4,23 +4,6 @@ function asRecord(data: unknown): Record<string, unknown> | null {
   return data && typeof data === "object" ? (data as Record<string, unknown>) : null;
 }
 
-function isUpstreamAccepted(upstreamOk: boolean, data: unknown) {
-  if (!upstreamOk) return false;
-  const d = asRecord(data);
-  if (!d) return true;
-  if (d.ok === false) return false;
-  if (typeof d.error === "string" && d.error.trim()) return false;
-  return true;
-}
-
-function extractError(data: unknown, fallback = "send failed") {
-  const d = asRecord(data);
-  if (!d) return fallback;
-  if (typeof d.error === "string" && d.error.trim()) return d.error;
-  if (typeof d.message === "string" && d.message.trim()) return d.message;
-  return fallback;
-}
-
 function parseMaybeJson(raw: string): unknown {
   if (!raw) return {};
   try {
@@ -30,51 +13,20 @@ function parseMaybeJson(raw: string): unknown {
   }
 }
 
+function extractError(data: unknown, fallback = "send failed") {
+  const d = asRecord(data);
+  if (!d) return fallback;
+  if (typeof d.error === "string" && d.error.trim()) return d.error;
+
+  const nested = asRecord(d.error);
+  if (nested && typeof nested.message === "string" && nested.message.trim()) return nested.message;
+
+  if (typeof d.message === "string" && d.message.trim()) return d.message;
+  return fallback;
+}
+
 function stripTrailingSlash(s: string) {
   return s.replace(/\/+$/, "");
-}
-
-function deriveBaseCandidates(base: string) {
-  const raw = stripTrailingSlash(base.trim());
-  const cands = new Set<string>();
-  cands.add(raw);
-
-  // 흔한 오입력 보정: .../sessions 또는 .../sessions/send 를 base로 넣은 경우
-  if (raw.endsWith("/sessions/send")) cands.add(raw.replace(/\/sessions\/send$/, ""));
-  if (raw.endsWith("/sessions")) cands.add(raw.replace(/\/sessions$/, ""));
-
-  // URL 형태면 pathname도 분석해서 루트 후보를 추가
-  try {
-    const u = new URL(raw);
-    const p = stripTrailingSlash(u.pathname);
-    const origin = `${u.protocol}//${u.host}`;
-    cands.add(origin + p);
-    if (p.endsWith("/sessions/send")) cands.add(origin + p.replace(/\/sessions\/send$/, ""));
-    if (p.endsWith("/sessions")) cands.add(origin + p.replace(/\/sessions$/, ""));
-  } catch {
-    // raw가 URL이 아니면 무시
-  }
-
-  return [...cands].map(stripTrailingSlash).filter(Boolean);
-}
-
-function buildSendCandidates(base: string) {
-  const roots = deriveBaseCandidates(base);
-  const endpoints: string[] = [];
-
-  for (const r of roots) {
-    const hasApiSuffix = r.endsWith("/api");
-    if (hasApiSuffix) {
-      endpoints.push(`${r}/sessions/send`);
-      endpoints.push(`${r}/v1/sessions/send`);
-    } else {
-      endpoints.push(`${r}/sessions/send`);
-      endpoints.push(`${r}/api/sessions/send`);
-      endpoints.push(`${r}/v1/sessions/send`);
-    }
-  }
-
-  return [...new Set(endpoints.map(stripTrailingSlash))];
 }
 
 function getDeployMeta() {
@@ -85,6 +37,16 @@ function getDeployMeta() {
     gitBranch: process.env.VERCEL_GIT_COMMIT_REF || null,
     appVersion: process.env.npm_package_version || null,
   };
+}
+
+function buildEndpointCandidates(base: string) {
+  const b = stripTrailingSlash(base);
+  return [
+    { kind: "responses", url: `${b}/v1/responses` },
+    { kind: "sessions", url: `${b}/sessions/send` },
+    { kind: "sessions", url: `${b}/api/sessions/send` },
+    { kind: "sessions", url: `${b}/v1/sessions/send` },
+  ];
 }
 
 export async function POST(req: Request) {
@@ -108,60 +70,89 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, accepted: false, error: "Missing OpenClaw config", requestId, deploy }, { status: 400 });
     }
 
-    const endpoints = buildSendCandidates(base);
-    const attempts: Array<{ endpoint: string; status: number; statusText: string; error: string; bodySnippet: string }> = [];
+    const attempts: Array<{ endpoint: string; mode: string; status: number; statusText: string; error: string; bodySnippet: string }> = [];
 
     let lastStatus = 0;
     let lastStatusText = "";
     let lastError = "upstream request failed";
     let lastData: unknown = {};
-    let selectedEndpoint = endpoints[0] || `${base}/sessions/send`;
+    let selectedEndpoint = "";
 
-    for (const endpoint of endpoints) {
-      selectedEndpoint = endpoint;
-      const upstream = await fetch(endpoint, {
+    for (const cand of buildEndpointCandidates(base)) {
+      selectedEndpoint = cand.url;
+
+      const upstream = await fetch(cand.url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ sessionKey: session, message }),
+        headers:
+          cand.kind === "responses"
+            ? {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+                "x-openclaw-session-key": session,
+                "x-openclaw-agent-id": "main",
+              }
+            : {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+        body:
+          cand.kind === "responses"
+            ? JSON.stringify({ model: "openclaw:main", input: message, stream: false })
+            : JSON.stringify({ sessionKey: session, message }),
       });
 
       const raw = await upstream.text();
       const data = parseMaybeJson(raw);
-      const accepted = isUpstreamAccepted(upstream.ok, data);
-      const error = accepted ? "" : extractError(data, `upstream ${upstream.status}`);
+
+      const accepted = upstream.ok && (() => {
+        const d = asRecord(data);
+        if (!d) return true;
+        if (d.ok === false) return false;
+        if (d.status === "failed") return false;
+        const nested = asRecord(d.error);
+        if (nested && typeof nested.message === "string" && nested.message.trim()) return false;
+        if (typeof d.error === "string" && d.error.trim()) return false;
+        return true;
+      })();
 
       if (accepted) {
         return NextResponse.json(
-          { ok: true, accepted: true, status: upstream.status, endpoint, data, error: null, attempts, requestId, deploy },
+          {
+            ok: true,
+            accepted: true,
+            status: upstream.status,
+            endpoint: cand.url,
+            mode: cand.kind,
+            data,
+            error: null,
+            attempts,
+            requestId,
+            deploy,
+          },
           { status: 200 },
         );
       }
 
       lastStatus = upstream.status;
       lastStatusText = upstream.statusText;
-      lastError = error || `upstream ${upstream.status}`;
+      lastError = extractError(data, `upstream ${upstream.status}`);
       lastData = data;
 
       const bodySnippet = raw.slice(0, 800);
-      attempts.push({ endpoint, status: upstream.status, statusText: upstream.statusText, error: lastError, bodySnippet });
+      attempts.push({ endpoint: cand.url, mode: cand.kind, status: upstream.status, statusText: upstream.statusText, error: lastError, bodySnippet });
 
       console.error("[openclaw/send] upstream_error", {
         requestId,
         deploy,
-        endpoint,
+        endpoint: cand.url,
+        mode: cand.kind,
         status: upstream.status,
         statusText: upstream.statusText,
         error: lastError,
         bodySnippet,
       });
 
-      // 404/405는 경로 미스 가능성이 높아서 다음 후보를 시도한다.
-      if (upstream.status !== 404 && upstream.status !== 405) {
-        break;
-      }
+      if (upstream.status !== 404 && upstream.status !== 405) break;
     }
 
     return NextResponse.json(

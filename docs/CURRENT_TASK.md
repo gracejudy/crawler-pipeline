@@ -51,7 +51,23 @@
 - 작업 브랜치
   - `oc/roughdiamond-dashboard` (origin push 완료)
 
+## 진행 업데이트 (2026-02-26 19:28 KST)
+- Dashboard 트랙 상태 동기화 완료(세션 초기화 대비)
+- OpenClaw Chat send 성공 판정 로직 보강 완료
+  - `/api/openclaw/send`에서 upstream payload 보수 판정 + 타입 안정화 반영
+- Overview 개선 완료
+  - 프로젝트 2개(CORE/DASHBOARD) 구분 표시
+  - context 경로 Copy/Open 버튼 추가
+  - 프로젝트별 task 리스트(접기/펴기) + 상태 태그 반영
+- Task 제어 버튼 반영
+  - `실행/중지/롤백` 버튼 추가
+  - DONE task는 실행 버튼 숨김
+  - 중지 시 롤백 필요 안내 후 rollback 준비 상태로 전환
+  - TODO + rollbackReady 조건에서만 롤백 버튼 노출
+- 최신 배포 반영 완료
+  - `https://roughdiamond-dashboard.vercel.app` alias 갱신
+
 ## 다음 액션
-1. OpenClaw `/sessions/send` 응답 포맷 재확인 후 Chat 성공 응답 판정 로직 미세조정
-2. Chat 탭 실세션 왕복(전송→응답) E2E 검증 캡처
-3. 마이그레이션 트랙(backend→src) 액션 재개: import 경로 정리 범위 확정
+1. Dashboard: Task 실행/중지/롤백 시 OpenClaw 응답 이력(Chat/Logs) E2E 검증 캡처
+2. Dashboard: task 상태/실행 상태 영속화(localStorage 또는 서버 저장) 여부 결정 및 반영
+3. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

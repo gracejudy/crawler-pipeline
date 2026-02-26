@@ -15,6 +15,23 @@ const tabs: { key: Tab; label: string }[] = [
 
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
 
+type ProjectTask = {
+  title: string;
+  description: string;
+  status: TaskStatus;
+  isRunning?: boolean;
+  rollbackReady?: boolean;
+  isActing?: boolean;
+};
+
+type ProjectItem = {
+  name: string;
+  purpose: string;
+  contextPath: string;
+  openUrl: string;
+  tasks: ProjectTask[];
+};
+
 const statusClass: Record<TaskStatus, string> = {
   TODO: "bg-slate-500/30 text-slate-200",
   IN_PROGRESS: "bg-cyan-500/30 text-cyan-200",
@@ -22,7 +39,7 @@ const statusClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-rose-500/30 text-rose-200",
 };
 
-const initialProjectOverview = [
+const initialProjectOverview: ProjectItem[] = [
   {
     name: "crawler-pipeline (CORE)",
     purpose: "Qoo10 상품 API 등록/업데이트 도메인 처리",
@@ -94,17 +111,82 @@ export default function Home() {
     ]);
   };
 
-  const updateProjectTaskStatus = (projectName: string, taskTitle: string, status: TaskStatus) => {
+  const patchProjectTask = (projectName: string, taskTitle: string, patch: Partial<ProjectTask>) => {
     setProjectOverview((prev) =>
       prev.map((project) => {
         if (project.name !== projectName) return project;
         return {
           ...project,
-          tasks: project.tasks.map((task) => (task.title === taskTitle ? { ...task, status } : task)),
+          tasks: project.tasks.map((task) => (task.title === taskTitle ? { ...task, ...patch } : task)),
         };
       }),
     );
+  };
+
+  const updateProjectTaskStatus = (projectName: string, taskTitle: string, status: TaskStatus) => {
+    patchProjectTask(projectName, taskTitle, { status });
     addLog("INFO", "overview.task.status_changed", `${projectName} | ${taskTitle} -> ${status}`);
+  };
+
+  const sendTaskCommand = async (message: string) => {
+    const r = await fetch("/api/openclaw/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d?.accepted) throw new Error(d?.error || d?.data?.error || "task command failed");
+  };
+
+  const handleTaskRun = async (projectName: string, task: ProjectTask) => {
+    patchProjectTask(projectName, task.title, { isActing: true });
+    try {
+      await sendTaskCommand(
+        `[TASK_RUN] project=${projectName}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
+      );
+      patchProjectTask(projectName, task.title, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS" });
+      addLog("INFO", "overview.task.run", `${projectName} | ${task.title}`);
+    } catch (e: any) {
+      patchProjectTask(projectName, task.title, { isActing: false });
+      setToast(`Task start failed: ${e.message}`);
+      addLog("ERROR", "overview.task.run_failed", `${projectName} | ${task.title} | ${e.message}`);
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
+  const handleTaskStop = async (projectName: string, task: ProjectTask) => {
+    const ok = window.confirm("중지 시 진행중 변경이 남을 수 있어. 롤백이 필요할 수 있다. 그래도 중지할까?");
+    if (!ok) return;
+
+    patchProjectTask(projectName, task.title, { isActing: true });
+    try {
+      await sendTaskCommand(
+        `[TASK_STOP] project=${projectName}\ntitle=${task.title}\n현재 작업을 즉시 중지해줘. 중지 후 롤백 가능 상태/영향 범위를 간단히 남겨줘.`,
+      );
+      patchProjectTask(projectName, task.title, { isRunning: false, isActing: false, rollbackReady: true, status: "TODO" });
+      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.title} | rollback_ready=true`);
+    } catch (e: any) {
+      patchProjectTask(projectName, task.title, { isActing: false });
+      setToast(`Task stop failed: ${e.message}`);
+      addLog("ERROR", "overview.task.stop_failed", `${projectName} | ${task.title} | ${e.message}`);
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
+  const handleTaskRollback = async (projectName: string, task: ProjectTask) => {
+    patchProjectTask(projectName, task.title, { isActing: true });
+    try {
+      await sendTaskCommand(
+        `[TASK_ROLLBACK] project=${projectName}\ntitle=${task.title}\n중지된 작업의 변경사항을 롤백해줘. 가능한 한 작업 전 상태로 복구하고 결과를 보고해줘.`,
+      );
+      patchProjectTask(projectName, task.title, { isActing: false, rollbackReady: false, isRunning: false, status: "TODO" });
+      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.title}`);
+    } catch (e: any) {
+      patchProjectTask(projectName, task.title, { isActing: false });
+      setToast(`Task rollback failed: ${e.message}`);
+      addLog("ERROR", "overview.task.rollback_failed", `${projectName} | ${task.title} | ${e.message}`);
+      setTimeout(() => setToast(null), 4000);
+    }
   };
 
   const loadSummary = async () => {
@@ -291,11 +373,31 @@ export default function Home() {
                                 <button
                                   key={s}
                                   onClick={() => updateProjectTaskStatus(p.name, task.title, s)}
-                                  className={`px-2 py-0.5 rounded text-[10px] ${task.status === s ? "bg-cyan-500/40 text-cyan-100" : "bg-white/10 text-slate-300"}`}
+                                  className={`px-2 py-0.5 rounded text-[10px] border ${task.status === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
                                 >
-                                  {s}
+                                  TAG:{s}
                                 </button>
                               ))}
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              <button
+                                onClick={() => (task.isRunning ? handleTaskStop(p.name, task) : handleTaskRun(p.name, task))}
+                                disabled={task.isActing}
+                                className={`px-2 py-1 rounded text-[11px] font-semibold ${task.isRunning ? "bg-amber-500/30 text-amber-100" : "bg-emerald-500/30 text-emerald-100"} disabled:opacity-50`}
+                              >
+                                {task.isActing ? "처리중..." : task.isRunning ? "중지" : "실행"}
+                              </button>
+
+                              {task.status === "TODO" && task.rollbackReady && (
+                                <button
+                                  onClick={() => handleTaskRollback(p.name, task)}
+                                  disabled={task.isActing}
+                                  className="px-2 py-1 rounded text-[11px] font-semibold bg-rose-500/30 text-rose-100 disabled:opacity-50"
+                                >
+                                  롤백
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}

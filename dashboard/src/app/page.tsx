@@ -117,10 +117,10 @@ export default function Home() {
         signal: controller.signal,
       });
       const d = await r.json();
-      if (!r.ok || !d?.ok) throw new Error(d?.error || "send failed");
+      if (!r.ok || !d?.accepted) throw new Error(d?.error || d?.data?.error || "send failed");
 
       setPrompt("");
-      addLog("INFO", "chat.send.success");
+      addLog("INFO", "chat.send.success", `status=${d?.status ?? "?"}`);
       setTimeout(loadHistory, 500);
     } catch (e: any) {
       const msg = e?.name === "AbortError" ? "Chat send timeout (>10s)" : `Chat send failed: ${e.message}`;

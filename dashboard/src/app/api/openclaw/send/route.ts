@@ -1,5 +1,21 @@
 import { NextResponse } from "next/server";
 
+function isUpstreamAccepted(upstreamOk: boolean, data: unknown) {
+  if (!upstreamOk) return false;
+  if (!data || typeof data !== "object") return true;
+  if (data.ok === false) return false;
+  if (typeof data.error === "string" && data.error.trim()) return false;
+  return true;
+}
+
+function extractError(data: unknown, fallback = "send failed") {
+  if (data && typeof data === "object") {
+    if (typeof data.error === "string" && data.error.trim()) return data.error;
+    if (typeof data.message === "string" && data.message.trim()) return data.message;
+  }
+  return fallback;
+}
+
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
@@ -8,7 +24,7 @@ export async function POST(req: Request) {
     const session = process.env.OPENCLAW_SESSION_ID?.trim();
 
     if (!base || !token || !session) {
-      return NextResponse.json({ ok: false, error: "Missing OpenClaw config" }, { status: 400 });
+      return NextResponse.json({ ok: false, accepted: false, error: "Missing OpenClaw config" }, { status: 400 });
     }
 
     const upstream = await fetch(`${base}/sessions/send`, {
@@ -21,8 +37,15 @@ export async function POST(req: Request) {
     });
 
     const data = await upstream.json().catch(() => ({}));
-    return NextResponse.json({ ok: upstream.ok, data }, { status: upstream.ok ? 200 : 502 });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message || "send failed" }, { status: 500 });
+    const accepted = isUpstreamAccepted(upstream.ok, data);
+    const error = accepted ? null : extractError(data, `upstream ${upstream.status}`);
+
+    return NextResponse.json(
+      { ok: accepted, accepted, status: upstream.status, data, error },
+      { status: accepted ? 200 : 502 },
+    );
+  } catch (e: unknown) {
+    const error = e instanceof Error ? e.message : "send failed";
+    return NextResponse.json({ ok: false, accepted: false, error }, { status: 500 });
   }
 }

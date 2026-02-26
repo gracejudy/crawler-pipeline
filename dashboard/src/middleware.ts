@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const pass = (process.env.DASHBOARD_PASSCODE || "roughdiamond-8921").trim();
+  const pass = (process.env.DASHBOARD_PASSCODE || "judy").trim();
 
   const auth = req.headers.get("authorization") || "";
   if (!auth.startsWith("Basic ")) {

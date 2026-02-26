@@ -190,6 +190,27 @@ export default function Home() {
                     <div className="font-semibold text-cyan-300">{p.name}</div>
                     <div className="text-slate-200 mt-1">{p.purpose}</div>
                     <div className="text-slate-400 mt-1 break-all">{p.contextPath}</div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(p.contextPath);
+                            addLog("INFO", "overview.path.copied", p.contextPath);
+                          } catch {
+                            addLog("ERROR", "overview.path.copy_failed", p.contextPath);
+                          }
+                        }}
+                        className="px-2 py-1 rounded bg-white/10 text-[11px]"
+                      >
+                        Copy Path
+                      </button>
+                      <button
+                        onClick={() => window.open(`file://${p.contextPath}`, "_blank")}
+                        className="px-2 py-1 rounded bg-white/10 text-[11px]"
+                      >
+                        Open
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

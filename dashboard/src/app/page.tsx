@@ -20,6 +20,7 @@ type ProjectTask = {
   title: string;
   description: string;
   status: TaskStatus;
+  deployedOnce?: boolean;
   isRunning?: boolean;
   rollbackReady?: boolean;
   isActing?: boolean;
@@ -32,6 +33,7 @@ type ProjectIssue = {
   title: string;
   description: string;
   status: ProjectIssueStatus;
+  deployedOnce?: boolean;
 };
 
 type ProjectItem = {
@@ -48,6 +50,18 @@ const statusClass: Record<TaskStatus, string> = {
   IN_PROGRESS: "bg-cyan-500/30 text-cyan-200",
   DONE: "bg-emerald-500/30 text-emerald-200",
   BLOCKED: "bg-rose-500/30 text-rose-200",
+};
+
+const effectiveTaskStatus = (task: ProjectTask): TaskStatus => {
+  if (task.status === "DONE") return "DONE";
+  if (task.deployedOnce) return "IN_PROGRESS";
+  return task.status;
+};
+
+const effectiveIssueStatus = (issue: ProjectIssue): TaskStatus => {
+  if (issue.status === "DONE") return "DONE";
+  if (issue.deployedOnce) return "IN_PROGRESS";
+  return issue.status as TaskStatus;
 };
 
 const initialProjectOverview: ProjectItem[] = [
@@ -94,18 +108,21 @@ const initialProjectOverview: ProjectItem[] = [
         title: "OpenClaw Chat 왕복 E2E 캡처",
         description: "전송→응답 성공 판정/오류 노출 흐름을 캡처해 검증",
         status: "TODO" as TaskStatus,
+        deployedOnce: true,
       },
       {
         id: "DASH-T03",
         title: "상태/로그 가독성 개선",
         description: "모바일 기준 배지/로그 밀도 조정 및 에러 표현 정리",
         status: "TODO" as TaskStatus,
+        deployedOnce: true,
       },
       {
         id: "DASH-T04",
         title: "Issues 섹션(tasks와 분리) 추가",
         description: "프로젝트별 이슈를 task와 별도로 등록/표시하는 섹션 추가",
         status: "TODO" as TaskStatus,
+        deployedOnce: true,
       },
       {
         id: "DASH-T05",
@@ -120,18 +137,21 @@ const initialProjectOverview: ProjectItem[] = [
         title: "최신 빌드 커밋번호 + Vercel 배포번호 표현",
         description: "대시보드에 최신 빌드의 git commit과 Vercel deployment 식별자를 표시",
         status: "TODO",
+        deployedOnce: true,
       },
       {
         id: "DASH-I02",
         title: "Task 실행 버튼 오류 해결 및 정상동작",
         description: "task 실행 버튼 클릭 시 발생하는 에러를 해결하고 정상 동작 보장",
         status: "TODO",
+        deployedOnce: true,
       },
       {
         id: "DASH-I03",
         title: "클라이언트 에러 서버 로그화",
         description: "클라이언트에서 발생하는 모든 에러를 서버에서 수집/로그화하여 사용자 수동 전달 의존 제거",
         status: "TODO",
+        deployedOnce: true,
       },
     ],
   },
@@ -204,7 +224,7 @@ export default function Home() {
       await sendTaskCommand(
         `[TASK_RUN] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
       );
-      patchProjectTask(projectName, task.id, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS" });
+      patchProjectTask(projectName, task.id, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS", deployedOnce: true });
       addLog("INFO", "overview.task.run", `${projectName} | ${task.id} ${task.title}`);
     } catch (e: any) {
       patchProjectTask(projectName, task.id, { isActing: false });
@@ -430,7 +450,7 @@ export default function Home() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
                               <div className="flex flex-wrap gap-1 justify-end">
-                                {task.status !== "DONE" && (
+                                {effectiveTaskStatus(task) !== "DONE" && (
                                   <button
                                     onClick={() => (task.isRunning ? handleTaskStop(p.name, task) : handleTaskRun(p.name, task))}
                                     disabled={task.isActing}
@@ -439,7 +459,7 @@ export default function Home() {
                                     {task.isActing ? "처리중..." : task.isRunning ? "중지" : "실행"}
                                   </button>
                                 )}
-                                {task.status === "TODO" && task.rollbackReady && (
+                                {effectiveTaskStatus(task) === "TODO" && task.rollbackReady && (
                                   <button
                                     onClick={() => handleTaskRollback(p.name, task)}
                                     disabled={task.isActing}
@@ -456,7 +476,7 @@ export default function Home() {
                                 <button
                                   key={s}
                                   onClick={() => updateProjectTaskStatus(p.name, task, s)}
-                                  className={`px-2 py-0.5 rounded text-[10px] border ${task.status === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
+                                  className={`px-2 py-0.5 rounded text-[10px] border ${effectiveTaskStatus(task) === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
                                 >
                                   TAG:{s}
                                 </button>
@@ -475,7 +495,7 @@ export default function Home() {
                             <div key={`${p.name}-issue-${i}`} className="rounded-md bg-white/5 p-2">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="font-semibold text-slate-100">[{issue.id}] {issue.title}</div>
-                                <span className={`px-2 py-0.5 rounded text-[10px] ${statusClass[issue.status as TaskStatus]}`}>{issue.status}</span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] ${statusClass[effectiveIssueStatus(issue)]}`}>{effectiveIssueStatus(issue)}</span>
                               </div>
                               <div className="mt-1 text-slate-300">{issue.description}</div>
                             </div>

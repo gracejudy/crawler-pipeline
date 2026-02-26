@@ -105,6 +105,8 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const addLog = (level: LogLevel, event: string, detail?: string) => {
+    // 요청사항: warning/info 제외, error만 기록
+    if (level !== "ERROR") return;
     setLogs((prev) => [
       { ts: new Date().toLocaleTimeString(), level, event, detail },
       ...prev,
@@ -135,7 +137,10 @@ export default function Home() {
       body: JSON.stringify({ message }),
     });
     const d = await r.json();
-    if (!r.ok || !d?.accepted) throw new Error(d?.error || d?.data?.error || "task command failed");
+    if (!r.ok || !d?.accepted) {
+      const rid = d?.requestId ? ` (requestId: ${d.requestId})` : "";
+      throw new Error(`${d?.error || d?.data?.error || "task command failed"}${rid}`);
+    }
   };
 
   const handleTaskRun = async (projectName: string, task: ProjectTask) => {
@@ -271,7 +276,10 @@ export default function Home() {
         signal: controller.signal,
       });
       const d = await r.json();
-      if (!r.ok || !d?.accepted) throw new Error(d?.error || d?.data?.error || "send failed");
+      if (!r.ok || !d?.accepted) {
+        const rid = d?.requestId ? ` (requestId: ${d.requestId})` : "";
+        throw new Error(`${d?.error || d?.data?.error || "send failed"}${rid}`);
+      }
 
       setPrompt("");
       addLog("INFO", "chat.send.success", `status=${d?.status ?? "?"}`);

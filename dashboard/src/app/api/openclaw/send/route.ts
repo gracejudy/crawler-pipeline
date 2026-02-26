@@ -77,7 +77,20 @@ function buildSendCandidates(base: string) {
   return [...new Set(endpoints.map(stripTrailingSlash))];
 }
 
+function getDeployMeta() {
+  return {
+    vercelEnv: process.env.VERCEL_ENV || null,
+    vercelUrl: process.env.VERCEL_URL || null,
+    gitCommit: process.env.VERCEL_GIT_COMMIT_SHA || null,
+    gitBranch: process.env.VERCEL_GIT_COMMIT_REF || null,
+    appVersion: process.env.npm_package_version || null,
+  };
+}
+
 export async function POST(req: Request) {
+  const requestId = `send-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const deploy = getDeployMeta();
+
   try {
     const { message } = await req.json();
     const base = process.env.OPENCLAW_BASE_URL?.trim();
@@ -86,11 +99,13 @@ export async function POST(req: Request) {
 
     if (!base || !token || !session) {
       console.error("[openclaw/send] missing_config", {
+        requestId,
+        deploy,
         hasBase: Boolean(base),
         hasToken: Boolean(token),
         hasSession: Boolean(session),
       });
-      return NextResponse.json({ ok: false, accepted: false, error: "Missing OpenClaw config" }, { status: 400 });
+      return NextResponse.json({ ok: false, accepted: false, error: "Missing OpenClaw config", requestId, deploy }, { status: 400 });
     }
 
     const endpoints = buildSendCandidates(base);
@@ -120,7 +135,7 @@ export async function POST(req: Request) {
 
       if (accepted) {
         return NextResponse.json(
-          { ok: true, accepted: true, status: upstream.status, endpoint, data, error: null, attempts },
+          { ok: true, accepted: true, status: upstream.status, endpoint, data, error: null, attempts, requestId, deploy },
           { status: 200 },
         );
       }
@@ -134,6 +149,8 @@ export async function POST(req: Request) {
       attempts.push({ endpoint, status: upstream.status, statusText: upstream.statusText, error: lastError, bodySnippet });
 
       console.error("[openclaw/send] upstream_error", {
+        requestId,
+        deploy,
         endpoint,
         status: upstream.status,
         statusText: upstream.statusText,
@@ -157,12 +174,14 @@ export async function POST(req: Request) {
         data: lastData,
         error: lastError,
         attempts,
+        requestId,
+        deploy,
       },
       { status: 502 },
     );
   } catch (e: unknown) {
     const error = e instanceof Error ? e.message : "send failed";
-    console.error("[openclaw/send] internal_error", { error });
-    return NextResponse.json({ ok: false, accepted: false, error }, { status: 500 });
+    console.error("[openclaw/send] internal_error", { requestId, deploy, error });
+    return NextResponse.json({ ok: false, accepted: false, error, requestId, deploy }, { status: 500 });
   }
 }

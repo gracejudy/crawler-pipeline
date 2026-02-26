@@ -16,6 +16,7 @@ const tabs: { key: Tab; label: string }[] = [
 type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
 
 type ProjectTask = {
+  id: string;
   title: string;
   description: string;
   status: TaskStatus;
@@ -27,6 +28,7 @@ type ProjectTask = {
 type ProjectIssueStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
 
 type ProjectIssue = {
+  id: string;
   title: string;
   description: string;
   status: ProjectIssueStatus;
@@ -56,16 +58,19 @@ const initialProjectOverview: ProjectItem[] = [
     openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/docs/PROJECT_CONTEXT.md",
     tasks: [
       {
+        id: "CORE-T01",
         title: "Import 경로 정리 범위 확정",
         description: "backend→src 전환 이후 import 경로를 어떤 단위로 정리할지 결정",
         status: "IN_PROGRESS" as TaskStatus,
       },
       {
+        id: "CORE-T02",
         title: "start 스크립트 src 기본 전환 검증",
         description: "start:legacy fallback 유지 상태에서 src 기본 전환 안정성 점검",
         status: "TODO" as TaskStatus,
       },
       {
+        id: "CORE-T03",
         title: "Qoo10 등록/업데이트 E2E 확인",
         description: "실데이터 기준 등록/업데이트 API 플로우 재검증 및 로그 점검",
         status: "TODO" as TaskStatus,
@@ -79,38 +84,51 @@ const initialProjectOverview: ProjectItem[] = [
     openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/dashboard/docs/PROJECT_CONTEXT.md",
     tasks: [
       {
+        id: "DASH-T01",
         title: "Project Overview 개선",
         description: "프로젝트별 task 리스트를 접기/펴기 UI로 제공",
         status: "DONE" as TaskStatus,
       },
       {
+        id: "DASH-T02",
         title: "OpenClaw Chat 왕복 E2E 캡처",
         description: "전송→응답 성공 판정/오류 노출 흐름을 캡처해 검증",
         status: "TODO" as TaskStatus,
       },
       {
+        id: "DASH-T03",
         title: "상태/로그 가독성 개선",
         description: "모바일 기준 배지/로그 밀도 조정 및 에러 표현 정리",
         status: "TODO" as TaskStatus,
       },
       {
+        id: "DASH-T04",
         title: "Issues 섹션(tasks와 분리) 추가",
         description: "프로젝트별 이슈를 task와 별도로 등록/표시하는 섹션 추가",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "DASH-T05",
+        title: "타이틀 ID 체계 적용",
+        description: "모든 task/issue에 고유 ID를 부여하고 ID + title 형식으로 표시",
         status: "TODO" as TaskStatus,
       },
     ],
     issues: [
       {
+        id: "DASH-I01",
         title: "최신 빌드 커밋번호 + Vercel 배포번호 표현",
         description: "대시보드에 최신 빌드의 git commit과 Vercel deployment 식별자를 표시",
         status: "TODO",
       },
       {
+        id: "DASH-I02",
         title: "Task 실행 버튼 오류 해결 및 정상동작",
         description: "task 실행 버튼 클릭 시 발생하는 에러를 해결하고 정상 동작 보장",
         status: "TODO",
       },
       {
+        id: "DASH-I03",
         title: "클라이언트 에러 서버 로그화",
         description: "클라이언트에서 발생하는 모든 에러를 서버에서 수집/로그화하여 사용자 수동 전달 의존 제거",
         status: "TODO",
@@ -150,21 +168,21 @@ export default function Home() {
     ]);
   };
 
-  const patchProjectTask = (projectName: string, taskTitle: string, patch: Partial<ProjectTask>) => {
+  const patchProjectTask = (projectName: string, taskId: string, patch: Partial<ProjectTask>) => {
     setProjectOverview((prev) =>
       prev.map((project) => {
         if (project.name !== projectName) return project;
         return {
           ...project,
-          tasks: project.tasks.map((task) => (task.title === taskTitle ? { ...task, ...patch } : task)),
+          tasks: project.tasks.map((task) => (task.id === taskId ? { ...task, ...patch } : task)),
         };
       }),
     );
   };
 
-  const updateProjectTaskStatus = (projectName: string, taskTitle: string, status: TaskStatus) => {
-    patchProjectTask(projectName, taskTitle, { status });
-    addLog("INFO", "overview.task.status_changed", `${projectName} | ${taskTitle} -> ${status}`);
+  const updateProjectTaskStatus = (projectName: string, task: ProjectTask, status: TaskStatus) => {
+    patchProjectTask(projectName, task.id, { status });
+    addLog("INFO", "overview.task.status_changed", `${projectName} | ${task.id} ${task.title} -> ${status}`);
   };
 
   const sendTaskCommand = async (message: string) => {
@@ -181,17 +199,17 @@ export default function Home() {
   };
 
   const handleTaskRun = async (projectName: string, task: ProjectTask) => {
-    patchProjectTask(projectName, task.title, { isActing: true });
+    patchProjectTask(projectName, task.id, { isActing: true });
     try {
       await sendTaskCommand(
-        `[TASK_RUN] project=${projectName}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
+        `[TASK_RUN] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
       );
-      patchProjectTask(projectName, task.title, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS" });
-      addLog("INFO", "overview.task.run", `${projectName} | ${task.title}`);
+      patchProjectTask(projectName, task.id, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS" });
+      addLog("INFO", "overview.task.run", `${projectName} | ${task.id} ${task.title}`);
     } catch (e: any) {
-      patchProjectTask(projectName, task.title, { isActing: false });
+      patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task start failed: ${e.message}`);
-      addLog("ERROR", "overview.task.run_failed", `${projectName} | ${task.title} | ${e.message}`);
+      addLog("ERROR", "overview.task.run_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
       setTimeout(() => setToast(null), 4000);
     }
   };
@@ -200,33 +218,33 @@ export default function Home() {
     const ok = window.confirm("중지 시 진행중 변경이 남을 수 있어. 롤백이 필요할 수 있다. 그래도 중지할까?");
     if (!ok) return;
 
-    patchProjectTask(projectName, task.title, { isActing: true });
+    patchProjectTask(projectName, task.id, { isActing: true });
     try {
       await sendTaskCommand(
-        `[TASK_STOP] project=${projectName}\ntitle=${task.title}\n현재 작업을 즉시 중지해줘. 중지 후 롤백 가능 상태/영향 범위를 간단히 남겨줘.`,
+        `[TASK_STOP] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n현재 작업을 즉시 중지해줘. 중지 후 롤백 가능 상태/영향 범위를 간단히 남겨줘.`,
       );
-      patchProjectTask(projectName, task.title, { isRunning: false, isActing: false, rollbackReady: true, status: "TODO" });
-      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.title} | rollback_ready=true`);
+      patchProjectTask(projectName, task.id, { isRunning: false, isActing: false, rollbackReady: true, status: "TODO" });
+      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.id} ${task.title} | rollback_ready=true`);
     } catch (e: any) {
-      patchProjectTask(projectName, task.title, { isActing: false });
+      patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task stop failed: ${e.message}`);
-      addLog("ERROR", "overview.task.stop_failed", `${projectName} | ${task.title} | ${e.message}`);
+      addLog("ERROR", "overview.task.stop_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
       setTimeout(() => setToast(null), 4000);
     }
   };
 
   const handleTaskRollback = async (projectName: string, task: ProjectTask) => {
-    patchProjectTask(projectName, task.title, { isActing: true });
+    patchProjectTask(projectName, task.id, { isActing: true });
     try {
       await sendTaskCommand(
-        `[TASK_ROLLBACK] project=${projectName}\ntitle=${task.title}\n중지된 작업의 변경사항을 롤백해줘. 가능한 한 작업 전 상태로 복구하고 결과를 보고해줘.`,
+        `[TASK_ROLLBACK] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n중지된 작업의 변경사항을 롤백해줘. 가능한 한 작업 전 상태로 복구하고 결과를 보고해줘.`,
       );
-      patchProjectTask(projectName, task.title, { isActing: false, rollbackReady: false, isRunning: false, status: "TODO" });
-      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.title}`);
+      patchProjectTask(projectName, task.id, { isActing: false, rollbackReady: false, isRunning: false, status: "TODO" });
+      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.id} ${task.title}`);
     } catch (e: any) {
-      patchProjectTask(projectName, task.title, { isActing: false });
+      patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task rollback failed: ${e.message}`);
-      addLog("ERROR", "overview.task.rollback_failed", `${projectName} | ${task.title} | ${e.message}`);
+      addLog("ERROR", "overview.task.rollback_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
       setTimeout(() => setToast(null), 4000);
     }
   };
@@ -357,7 +375,7 @@ export default function Home() {
         <h1 className="text-xl font-semibold">💎 RoughDiamond Dashboard</h1>
         <p className="text-sm text-slate-300">Coupang → Qoo10 Control Room</p>
         <p className="text-[11px] text-slate-400 mt-1 break-all">
-          Deploy: {chatConfig?.deploy?.vercelEnv || "local"} | {chatConfig?.deploy?.gitBranch || "-"} | {(chatConfig?.deploy?.gitCommit || "-").slice(0, 8)}
+          Deploy: {chatConfig?.deploy?.vercelEnv || "local"} | {chatConfig?.deploy?.gitBranch || "-"} | {(chatConfig?.deploy?.gitCommit || "-").slice(0, 8)} | dep:{(chatConfig?.deploy?.deploymentId || "-").slice(0, 12)}
         </p>
       </header>
 
@@ -410,7 +428,7 @@ export default function Home() {
                         {p.tasks.map((task, idx) => (
                           <div key={`${p.name}-${idx}`} className="rounded-md bg-white/5 p-2">
                             <div className="flex items-start justify-between gap-2">
-                              <div className="font-semibold text-slate-100">{task.title}</div>
+                              <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
                               <div className="flex flex-wrap gap-1 justify-end">
                                 {task.status !== "DONE" && (
                                   <button
@@ -437,7 +455,7 @@ export default function Home() {
                               {(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as TaskStatus[]).map((s) => (
                                 <button
                                   key={s}
-                                  onClick={() => updateProjectTaskStatus(p.name, task.title, s)}
+                                  onClick={() => updateProjectTaskStatus(p.name, task, s)}
                                   className={`px-2 py-0.5 rounded text-[10px] border ${task.status === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
                                 >
                                   TAG:{s}
@@ -456,7 +474,7 @@ export default function Home() {
                           {p.issues.map((issue, i) => (
                             <div key={`${p.name}-issue-${i}`} className="rounded-md bg-white/5 p-2">
                               <div className="flex items-center justify-between gap-2">
-                                <div className="font-semibold text-slate-100">{issue.title}</div>
+                                <div className="font-semibold text-slate-100">[{issue.id}] {issue.title}</div>
                                 <span className={`px-2 py-0.5 rounded text-[10px] ${statusClass[issue.status as TaskStatus]}`}>{issue.status}</span>
                               </div>
                               <div className="mt-1 text-slate-300">{issue.description}</div>
@@ -510,6 +528,7 @@ export default function Home() {
               <div>Deploy Env: {chatConfig?.deploy?.vercelEnv || "local"}</div>
               <div>Deploy Branch: {chatConfig?.deploy?.gitBranch || "-"}</div>
               <div>Deploy Commit: {(chatConfig?.deploy?.gitCommit || "-").slice(0, 12)}</div>
+              <div>Deploy ID: {(chatConfig?.deploy?.deploymentId || "-").slice(0, 24)}</div>
               <div>Deploy URL: {chatConfig?.deploy?.vercelUrl || "-"}</div>
               <div className="mt-2 flex items-center gap-2">
                 <button onClick={runHealth} className="text-xs px-3 py-1 rounded-lg bg-white/10">Health Check</button>

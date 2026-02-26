@@ -18,11 +18,13 @@ const projectOverview = [
     name: "crawler-pipeline (CORE)",
     purpose: "Qoo10 상품 API 등록/업데이트 도메인 처리",
     contextPath: "/Users/judy/dev/crawler-pipeline/docs/PROJECT_CONTEXT.md",
+    openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/docs/PROJECT_CONTEXT.md",
   },
   {
     name: "roughdiamond-dashboard (DASHBOARD)",
     purpose: "진행 중 프로젝트 Tasks/Logs/Chat 운영 뷰",
     contextPath: "/Users/judy/dev/crawler-pipeline/dashboard/docs/PROJECT_CONTEXT.md",
+    openUrl: "https://github.com/gracejudy/crawler-pipeline/blob/oc/roughdiamond-dashboard/dashboard/docs/PROJECT_CONTEXT.md",
   },
 ];
 
@@ -205,7 +207,10 @@ export default function Home() {
                         Copy Path
                       </button>
                       <button
-                        onClick={() => window.open(`file://${p.contextPath}`, "_blank")}
+                        onClick={() => {
+                          const w = window.open(p.openUrl, "_blank", "noopener,noreferrer");
+                          if (!w) addLog("ERROR", "overview.path.open_failed", p.openUrl);
+                        }}
                         className="px-2 py-1 rounded bg-white/10 text-[11px]"
                       >
                         Open

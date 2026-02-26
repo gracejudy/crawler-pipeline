@@ -97,7 +97,17 @@ export async function POST(req: Request) {
               },
         body:
           cand.kind === "responses"
-            ? JSON.stringify({ model: "openclaw:main", input: message, stream: false })
+            ? JSON.stringify({
+                model: "openclaw:main",
+                stream: false,
+                input: [
+                  {
+                    type: "message",
+                    role: "user",
+                    content: [{ type: "input_text", text: String(message ?? "") }],
+                  },
+                ],
+              })
             : JSON.stringify({ sessionKey: session, message }),
       });
 

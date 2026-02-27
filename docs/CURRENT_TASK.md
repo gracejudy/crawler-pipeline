@@ -89,6 +89,7 @@
 ## 진행 업데이트 (2026-02-27 12:55 KST)
 - `DASH-T12` 완료 처리
   - stash 태그 유지 대상 확정: `DASH-T06`, `DASH-T09`, `DASH-T10`, `DASH-I02`, `DASH-I05`
+  - 이후 확장 반영: `DASH-T02`, `DASH-I03`도 stash 이관 대상에 추가
   - 위 대상만 `제어 기능은 2차 고도화(stash)` 태그 유지
   - 나머지 task/issue의 stash 태그 제거
   - Overview에 `Stash (2차 고도화 이관)` 섹션 추가 후 대상 항목 이동

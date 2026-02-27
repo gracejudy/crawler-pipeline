@@ -49,7 +49,7 @@ const statusClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-rose-500/30 text-rose-200",
 };
 
-const CONTROL_STASH_IDS = new Set(["DASH-T06", "DASH-T09", "DASH-T10", "DASH-I02", "DASH-I05"]);
+const CONTROL_STASH_IDS = new Set(["DASH-T02", "DASH-T06", "DASH-T09", "DASH-T10", "DASH-I02", "DASH-I03", "DASH-I05"]);
 
 function formatSeoulDateTime(raw?: string | null) {
   if (!raw) return "-";

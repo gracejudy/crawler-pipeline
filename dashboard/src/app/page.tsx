@@ -168,6 +168,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "우선순위 높은 항목 상단, 우선순위 동일 시 등록일(오래된 순) 우선 정렬",
         status: "TODO" as TaskStatus,
       },
+      {
+        id: "DASH-T08",
+        title: "완료된 작업 별도 리스트 분리(기본 접힘)",
+        description: "완료된 작업은 tasks 리스트와 분리하여 별도 섹션으로 표시하고 기본은 접힌 상태로 관리",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {

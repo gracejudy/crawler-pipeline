@@ -311,6 +311,7 @@ export default function Home() {
   const [prompt, setPrompt] = useState("");
   const [chatConfig, setChatConfig] = useState<any>(null);
   const [chatHealth, setChatHealth] = useState<any>(null);
+  const [sessionStatus, setSessionStatus] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ ts: string; level: LogLevel; event: string; detail?: string }[]>([]);
@@ -383,9 +384,16 @@ export default function Home() {
     addLog(d.ok ? "INFO" : "ERROR", "chat.health", JSON.stringify(d));
   };
 
+  const loadSessionStatus = async () => {
+    const r = await fetch("/api/openclaw/session-status", { cache: "no-store" });
+    const d = await r.json();
+    setSessionStatus(d);
+  };
+
   useEffect(() => {
     loadSummary();
     loadQoo10Diagnostics();
+    loadSessionStatus();
     fetch("/api/chat/config").then((r) => r.json()).then(setChatConfig).catch(() => null);
   }, []);
 
@@ -530,6 +538,9 @@ export default function Home() {
         <p className="text-sm text-slate-300">Coupang → Qoo10 Control Room</p>
         <p className="text-[11px] text-slate-400 mt-1 break-all">
           Deploy: {chatConfig?.deploy?.vercelEnv || "local"} | {chatConfig?.deploy?.gitBranch || "-"} | {(chatConfig?.deploy?.gitCommit || "-").slice(0, 8)} | dep:{(chatConfig?.deploy?.deploymentId || "-").slice(0, 12)}
+        </p>
+        <p className="text-[11px] text-slate-400 mt-1 break-all">
+          Session: {sessionStatus?.sessionKey || chatConfig?.session || "-"} | token: {typeof sessionStatus?.usagePercent === "number" ? `${sessionStatus.usagePercent}%` : "-"}
         </p>
       </header>
 

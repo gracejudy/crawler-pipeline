@@ -135,6 +135,24 @@ const initialProjectOverview: ProjectItem[] = [
         description: "실데이터 기준 등록/업데이트 API 플로우 재검증 및 로그 점검",
         status: "TODO" as TaskStatus,
       },
+      {
+        id: "CORE-T04",
+        title: "[HOTFIX] Extension 옵션 값(옵션 항목) 수집 보강",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | HTML Label=색상 × 구성품 × 수량 | Value=혼합색상 × 숟가락 + 젓가락 + 케이스 × 1세트\nAcceptance: 옵션 value 텍스트를 렌더링 값 기준으로 trim/공백정규화 후 저장. 다중 옵션 row 존재 시 전체 수집(뉴라인 또는 JSON 배열 문자열 포맷 고정).\nDone when: 샘플 vendorItemId(73359457956) 포함 케이스에서 옵션 값 누락 0건, 저장 포맷 일관성 검증 통과.",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "CORE-T05",
+        title: "[HOTFIX] 상세페이지 이미지 URL 전체 수집",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | example=https://thumbnail.coupangcdn.com/thumbnails/remote/q89/image/rs_quotation_api/sclk56uh/1106710cf33a4f0182aa028636e960ad.jpg\nAcceptance: 상품 상세 섹션의 이미지 URL을 누락 없이 전부 수집. 다중 URL 저장 포맷(뉴라인 또는 JSON 배열 문자열) 고정.\nDone when: 샘플 상품에서 상세 이미지 URL 전체가 시트에 저장되고 재수집 시 순서/포맷 안정적으로 유지.",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "CORE-T06",
+        title: "[HOTFIX] 추가 썸네일 URL 600x600ex 정규화",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | input=https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg | output=https://thumbnail.coupangcdn.com/thumbnails/remote/600x600ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg\nAcceptance: /thumbnails/remote/{WxH}ex/ 패턴에 한해 안전 치환으로 600x600ex 저장. 다중 URL 전부 정규화. 비매칭 URL은 원본 유지(비손상).\nDone when: 샘플 포함 케이스에서 정규화 정확도 100%, 비매칭 URL 오염 0건.",
+        status: "TODO" as TaskStatus,
+      },
     ],
   },
   {
@@ -233,24 +251,6 @@ const initialProjectOverview: ProjectItem[] = [
       { id: "DASH-T20", title: "Detail panel read-only", description: "Diff/API 요약/로그/런이력 포함 슬라이드오버 구현", status: "DONE" as TaskStatus },
       { id: "DASH-T21", title: "Metrics aggregation validation", description: "KPI/ingestion 집계 규칙 lightweight 검증 로직 반영", status: "DONE" as TaskStatus },
       { id: "DASH-T22", title: "Visual polish mobile-first", description: "모바일 가독성/배지/간격 튜닝", status: "DONE" as TaskStatus },
-      {
-        id: "DASH-T23",
-        title: "[HOTFIX] Extension 옵션 값(옵션 항목) 수집 보강",
-        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | HTML Label=색상 × 구성품 × 수량 | Value=혼합색상 × 숟가락 + 젓가락 + 케이스 × 1세트\nAcceptance: 옵션 value 텍스트를 렌더링 값 기준으로 trim/공백정규화 후 저장. 다중 옵션 row 존재 시 전체 수집(뉴라인 또는 JSON 배열 문자열 포맷 고정).\nDone when: 샘플 vendorItemId(73359457956) 포함 케이스에서 옵션 값 누락 0건, 저장 포맷 일관성 검증 통과.",
-        status: "TODO" as TaskStatus,
-      },
-      {
-        id: "DASH-T24",
-        title: "[HOTFIX] 상세페이지 이미지 URL 전체 수집",
-        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | example=https://thumbnail.coupangcdn.com/thumbnails/remote/q89/image/rs_quotation_api/sclk56uh/1106710cf33a4f0182aa028636e960ad.jpg\nAcceptance: 상품 상세 섹션의 이미지 URL을 누락 없이 전부 수집. 다중 URL 저장 포맷(뉴라인 또는 JSON 배열 문자열) 고정.\nDone when: 샘플 상품에서 상세 이미지 URL 전체가 시트에 저장되고 재수집 시 순서/포맷 안정적으로 유지.",
-        status: "TODO" as TaskStatus,
-      },
-      {
-        id: "DASH-T25",
-        title: "[HOTFIX] 추가 썸네일 URL 600x600ex 정규화",
-        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | input=https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg | output=https://thumbnail.coupangcdn.com/thumbnails/remote/600x600ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg\nAcceptance: /thumbnails/remote/{WxH}ex/ 패턴에 한해 안전 치환으로 600x600ex 저장. 다중 URL 전부 정규화. 비매칭 URL은 원본 유지(비손상).\nDone when: 샘플 포함 케이스에서 정규화 정확도 100%, 비매칭 URL 오염 0건.",
-        status: "TODO" as TaskStatus,
-      },
     ],
     issues: [
       {

@@ -106,14 +106,14 @@
   - Issues: `DASH-I06`, `DASH-I07`
     - NeedsUpdate 공집합 집계 오분류 수정
     - needsUpdate 공집합 + 미등록 케이스 상태 표기 일관화(UNREGISTERED)
-  - Tasks: `DASH-T23`, `DASH-T24`, `DASH-T25`
+  - Tasks(소유권 정정): `DASH-T23`, `DASH-T24`, `DASH-T25` → `CORE-T04`, `CORE-T05`, `CORE-T06`
     - 옵션 value 텍스트 수집
     - 상세페이지 이미지 URL 전체 수집
     - 추가 썸네일 URL 600x600ex 정규화
-  - 모든 항목 HOTFIX 우선순위, 상태 TODO로 등록
+  - 정정 원칙: 내용/Acceptance/Done-when/상태(TODO) 유지, DASHBOARD active 목록에서는 제거
 
 ## 다음 액션
 1. Dashboard: `DASH-I06`/`DASH-I07` 집계·상태 핫픽스 구현
-2. Dashboard: `DASH-T23`~`DASH-T25` extension 수집 로직 핫픽스 구현
+2. CORE: `CORE-T04`~`CORE-T06` extension 수집 로직 핫픽스 구현
 3. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
 4. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

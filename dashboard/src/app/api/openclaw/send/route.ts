@@ -25,6 +25,23 @@ function extractError(data: unknown, fallback = "send failed") {
   return fallback;
 }
 
+function extractReplyText(data: unknown): string | null {
+  const d = asRecord(data);
+  if (!d) return null;
+  const output = Array.isArray(d.output) ? d.output : [];
+  for (const item of output) {
+    const i = asRecord(item);
+    if (!i) continue;
+    const content = Array.isArray(i.content) ? i.content : [];
+    for (const part of content) {
+      const p = asRecord(part);
+      if (!p) continue;
+      if (typeof p.text === "string" && p.text.trim()) return p.text;
+    }
+  }
+  return null;
+}
+
 function stripTrailingSlash(s: string) {
   return s.replace(/\/+$/, "");
 }
@@ -134,6 +151,7 @@ export async function POST(req: Request) {
             endpoint: cand.url,
             mode: cand.kind,
             data,
+            replyText: cand.kind === "responses" ? extractReplyText(data) : null,
             error: null,
             attempts,
             requestId,

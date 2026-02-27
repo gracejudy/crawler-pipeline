@@ -272,16 +272,21 @@ export default function Home() {
       const rid = d?.requestId ? ` (requestId: ${d.requestId})` : "";
       throw new Error(`${d?.error || d?.data?.error || "task command failed"}${rid}`);
     }
+    return d;
   };
 
   const handleTaskRun = async (projectName: string, task: ProjectTask) => {
     patchProjectTask(projectName, task.id, { isActing: true });
     try {
-      await sendTaskCommand(
+      const res = await sendTaskCommand(
         `[TASK_RUN] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
       );
       patchProjectTask(projectName, task.id, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS", deployedOnce: true });
-      addLog("INFO", "overview.task.run", `${projectName} | ${task.id} ${task.title}`);
+      const summary = res?.replyText ? ` | reply: ${String(res.replyText).slice(0, 120)}` : "";
+      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
+      setToast(`Task command accepted${rid}`);
+      setTimeout(() => setToast(null), 2500);
+      addLog("INFO", "overview.task.run", `${projectName} | ${task.id} ${task.title}${summary}${rid}`);
     } catch (e: any) {
       patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task start failed: ${e.message}`);
@@ -296,11 +301,12 @@ export default function Home() {
 
     patchProjectTask(projectName, task.id, { isActing: true });
     try {
-      await sendTaskCommand(
+      const res = await sendTaskCommand(
         `[TASK_STOP] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n현재 작업을 즉시 중지해줘. 중지 후 롤백 가능 상태/영향 범위를 간단히 남겨줘.`,
       );
       patchProjectTask(projectName, task.id, { isRunning: false, isActing: false, rollbackReady: true, status: "TODO" });
-      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.id} ${task.title} | rollback_ready=true`);
+      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
+      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.id} ${task.title} | rollback_ready=true${rid}`);
     } catch (e: any) {
       patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task stop failed: ${e.message}`);
@@ -312,11 +318,12 @@ export default function Home() {
   const handleTaskRollback = async (projectName: string, task: ProjectTask) => {
     patchProjectTask(projectName, task.id, { isActing: true });
     try {
-      await sendTaskCommand(
+      const res = await sendTaskCommand(
         `[TASK_ROLLBACK] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n중지된 작업의 변경사항을 롤백해줘. 가능한 한 작업 전 상태로 복구하고 결과를 보고해줘.`,
       );
       patchProjectTask(projectName, task.id, { isActing: false, rollbackReady: false, isRunning: false, status: "TODO" });
-      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.id} ${task.title}`);
+      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
+      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.id} ${task.title}${rid}`);
     } catch (e: any) {
       patchProjectTask(projectName, task.id, { isActing: false });
       setToast(`Task rollback failed: ${e.message}`);

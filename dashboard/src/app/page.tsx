@@ -180,6 +180,24 @@ const initialProjectOverview: ProjectItem[] = [
         description: "quick tunnel 대신 영구 Cloudflare named tunnel로 OPENCLAW_BASE_URL을 고정해 실행 안정성 확보",
         status: "TODO" as TaskStatus,
       },
+      {
+        id: "DASH-T10",
+        title: "1차 목표에서 제어 기능 제외 기준 확정",
+        description: "대시보드 1차 목표를 관측 중심으로 확정하고 제어 기능은 2차 고도화로 분리",
+        status: "DONE" as TaskStatus,
+      },
+      {
+        id: "DASH-T11",
+        title: "task/issue 실행·중단 버튼 제거(롤백 포함)",
+        description: "제어 기능 제거 방향에 맞춰 실행/중단 버튼 제거 및 되돌릴 수 있는 롤백 작업 항목 포함",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "DASH-T12",
+        title: "task에 stash 섹션 추가 + 제어 관련 항목 이동",
+        description: "제어 기능 관련 task/issue를 stash 섹션으로 이동해 2차 고도화 참조용으로 보존",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {
@@ -207,6 +225,12 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-I04",
         title: "Logs 탭 사용성 복구",
         description: "현재 Logs 탭이 테스트/운영에서 충분히 활용되지 못하는 상태를 개선",
+        status: "TODO",
+      },
+      {
+        id: "DASH-I05",
+        title: "1차 목표에서 제어 기능 제외 후속 정리",
+        description: "기존 제어 기능 요구사항/잔여 구현을 2차 고도화로 이관하고 문서·화면 반영 누락 방지",
         status: "TODO",
       },
     ],

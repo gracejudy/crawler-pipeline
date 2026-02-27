@@ -136,6 +136,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "issues 항목에도 task와 유사한 실행 제어 버튼을 추가",
         status: "TODO" as TaskStatus,
       },
+      {
+        id: "DASH-T07",
+        title: "task / issue 우선순위 타입 + 정렬 규칙 적용",
+        description: "우선순위 높은 항목 상단, 우선순위 동일 시 등록일(오래된 순) 우선 정렬",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {
@@ -158,6 +164,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "클라이언트에서 발생하는 모든 에러를 서버에서 수집/로그화하여 사용자 수동 전달 의존 제거",
         status: "TODO",
         deployedOnce: true,
+      },
+      {
+        id: "DASH-I04",
+        title: "Logs 탭 사용성 복구",
+        description: "현재 Logs 탭이 테스트/운영에서 충분히 활용되지 못하는 상태를 개선",
+        status: "TODO",
       },
     ],
   },

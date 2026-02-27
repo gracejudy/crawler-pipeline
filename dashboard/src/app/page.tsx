@@ -285,77 +285,6 @@ export default function Home() {
     addLog("INFO", "overview.task.status_changed", `${projectName} | ${task.id} ${task.title} -> ${status}`);
   };
 
-  const sendTaskCommand = async (message: string) => {
-    const r = await fetch(apiUrl("/api/openclaw/send"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message }),
-    });
-    const d = await r.json();
-    if (!r.ok || !d?.accepted) {
-      const rid = d?.requestId ? ` (requestId: ${d.requestId})` : "";
-      throw new Error(`${d?.error || d?.data?.error || "task command failed"}${rid}`);
-    }
-    return d;
-  };
-
-  const handleTaskRun = async (projectName: string, task: ProjectTask) => {
-    patchProjectTask(projectName, task.id, { isActing: true });
-    try {
-      const res = await sendTaskCommand(
-        `[TASK_RUN] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\ndescription=${task.description}\nstatus=${task.status}\n작업을 시작해줘. 진행 로그를 남기고 완료 시 결과를 보고해줘.`,
-      );
-      patchProjectTask(projectName, task.id, { isRunning: true, isActing: false, rollbackReady: false, status: "IN_PROGRESS", deployedOnce: true });
-      const summary = res?.replyText ? ` | reply: ${String(res.replyText).slice(0, 120)}` : "";
-      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
-      setToast(`Task command accepted${rid}`);
-      setTimeout(() => setToast(null), 2500);
-      addLog("INFO", "overview.task.run", `${projectName} | ${task.id} ${task.title}${summary}${rid}`);
-    } catch (e: any) {
-      patchProjectTask(projectName, task.id, { isActing: false });
-      setToast(`Task start failed: ${e.message}`);
-      addLog("ERROR", "overview.task.run_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
-      setTimeout(() => setToast(null), 4000);
-    }
-  };
-
-  const handleTaskStop = async (projectName: string, task: ProjectTask) => {
-    const ok = window.confirm("중지 시 진행중 변경이 남을 수 있어. 롤백이 필요할 수 있다. 그래도 중지할까?");
-    if (!ok) return;
-
-    patchProjectTask(projectName, task.id, { isActing: true });
-    try {
-      const res = await sendTaskCommand(
-        `[TASK_STOP] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n현재 작업을 즉시 중지해줘. 중지 후 롤백 가능 상태/영향 범위를 간단히 남겨줘.`,
-      );
-      patchProjectTask(projectName, task.id, { isRunning: false, isActing: false, rollbackReady: true, status: "TODO" });
-      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
-      addLog("INFO", "overview.task.stopped", `${projectName} | ${task.id} ${task.title} | rollback_ready=true${rid}`);
-    } catch (e: any) {
-      patchProjectTask(projectName, task.id, { isActing: false });
-      setToast(`Task stop failed: ${e.message}`);
-      addLog("ERROR", "overview.task.stop_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
-      setTimeout(() => setToast(null), 4000);
-    }
-  };
-
-  const handleTaskRollback = async (projectName: string, task: ProjectTask) => {
-    patchProjectTask(projectName, task.id, { isActing: true });
-    try {
-      const res = await sendTaskCommand(
-        `[TASK_ROLLBACK] project=${projectName}\ntaskId=${task.id}\ntitle=${task.title}\n중지된 작업의 변경사항을 롤백해줘. 가능한 한 작업 전 상태로 복구하고 결과를 보고해줘.`,
-      );
-      patchProjectTask(projectName, task.id, { isActing: false, rollbackReady: false, isRunning: false, status: "TODO" });
-      const rid = res?.requestId ? ` | requestId=${res.requestId}` : "";
-      addLog("INFO", "overview.task.rollback", `${projectName} | ${task.id} ${task.title}${rid}`);
-    } catch (e: any) {
-      patchProjectTask(projectName, task.id, { isActing: false });
-      setToast(`Task rollback failed: ${e.message}`);
-      addLog("ERROR", "overview.task.rollback_failed", `${projectName} | ${task.id} ${task.title} | ${e.message}`);
-      setTimeout(() => setToast(null), 4000);
-    }
-  };
-
   const loadSummary = async () => {
     const r = await fetch("/api/sheets/summary", { cache: "no-store" });
     const d = await r.json();
@@ -537,24 +466,7 @@ export default function Home() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
                               <div className="flex flex-wrap gap-1 justify-end">
-                                {effectiveTaskStatus(task) !== "DONE" && (
-                                  <button
-                                    onClick={() => (task.isRunning ? handleTaskStop(p.name, task) : handleTaskRun(p.name, task))}
-                                    disabled={task.isActing}
-                                    className={`px-2 py-1 rounded text-[11px] font-semibold ${task.isRunning ? "bg-amber-500/30 text-amber-100" : "bg-emerald-500/30 text-emerald-100"} disabled:opacity-50`}
-                                  >
-                                    {task.isActing ? "처리중..." : task.isRunning ? "중지" : "실행"}
-                                  </button>
-                                )}
-                                {effectiveTaskStatus(task) === "TODO" && task.rollbackReady && (
-                                  <button
-                                    onClick={() => handleTaskRollback(p.name, task)}
-                                    disabled={task.isActing}
-                                    className="px-2 py-1 rounded text-[11px] font-semibold bg-rose-500/30 text-rose-100 disabled:opacity-50"
-                                  >
-                                    롤백
-                                  </button>
-                                )}
+                                <span className="px-2 py-1 rounded text-[11px] bg-white/10 text-slate-300">제어 기능은 2차 고도화(stash)</span>
                               </div>
                             </div>
                             <div className="mt-1 text-slate-300">{task.description}</div>

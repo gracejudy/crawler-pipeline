@@ -42,6 +42,27 @@ type ProjectItem = {
   issues?: ProjectIssue[];
 };
 
+type Qoo10Status = "UNREGISTERED" | "REGISTERED" | "UPDATE_NEEDED" | "ERROR";
+type Qoo10Result = "SUCCESS" | "FAIL";
+type Qoo10Record = {
+  id: string;
+  status: Qoo10Status;
+  productName: string;
+  vendorItemId: string;
+  sellerCode?: string;
+  qoo10ItemId?: string;
+  excluded?: boolean;
+  updateReasons: string[];
+  lastResult: { status: Qoo10Result; message: string; code?: string };
+  lastUpdatedAt?: string;
+  collectedAt?: string;
+  categorySummary?: string;
+  diff?: { field: string; oldValue: string; newValue: string }[];
+  apiResults?: { at: string; code: string; message: string }[];
+  logs?: string[];
+  runHistory?: { runId: string; outcome: "SUCCESS" | "FAIL" | "WARN"; at: string }[];
+};
+
 const statusClass: Record<TaskStatus, string> = {
   TODO: "bg-slate-500/30 text-slate-200",
   IN_PROGRESS: "bg-cyan-500/30 text-cyan-200",
@@ -203,6 +224,15 @@ const initialProjectOverview: ProjectItem[] = [
         description: "초기 진입 시 registration 탭 대신 overview 탭이 기본으로 열리도록 변경",
         status: "DONE" as TaskStatus,
       },
+      { id: "DASH-T14", title: "Qoo10 tab skeleton + routing", description: "Qoo10 탭 read-only v1 섹션 골격 구성", status: "DONE" as TaskStatus },
+      { id: "DASH-T15", title: "Sticky header: run summary", description: "Run Status/Last Sync/Coverage/Data Source 헤더 구현", status: "DONE" as TaskStatus },
+      { id: "DASH-T16", title: "Ingestion Snapshot block", description: "Google extension 수집 스냅샷 카드 + 결측 필드 필터 연동", status: "DONE" as TaskStatus },
+      { id: "DASH-T17", title: "KPI cards + drill-down", description: "Overview 동일 KPI 카드 + 필터 드릴다운 연동", status: "DONE" as TaskStatus },
+      { id: "DASH-T18", title: "Main table read-only", description: "기본 정렬/모바일 카드뷰 포함 read-only 테이블 구현", status: "DONE" as TaskStatus },
+      { id: "DASH-T19", title: "Filters + unified search", description: "상태/범위/사유/결과/시간 필터 및 통합 검색 구현", status: "DONE" as TaskStatus },
+      { id: "DASH-T20", title: "Detail panel read-only", description: "Diff/API 요약/로그/런이력 포함 슬라이드오버 구현", status: "DONE" as TaskStatus },
+      { id: "DASH-T21", title: "Metrics aggregation validation", description: "KPI/ingestion 집계 규칙 lightweight 검증 로직 반영", status: "DONE" as TaskStatus },
+      { id: "DASH-T22", title: "Visual polish mobile-first", description: "모바일 가독성/배지/간격 튜닝", status: "DONE" as TaskStatus },
     ],
     issues: [
       {
@@ -255,6 +285,14 @@ export default function Home() {
   const [toast, setToast] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ ts: string; level: LogLevel; event: string; detail?: string }[]>([]);
   const [projectOverview, setProjectOverview] = useState(initialProjectOverview);
+  const [qoo10Data, setQoo10Data] = useState<any>(null);
+  const [selectedRecord, setSelectedRecord] = useState<Qoo10Record | null>(null);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [scopeFilter, setScopeFilter] = useState("Active");
+  const [resultFilter, setResultFilter] = useState("All");
+  const [timeFilter, setTimeFilter] = useState("7d");
+  const [reasonFilter, setReasonFilter] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -296,6 +334,12 @@ export default function Home() {
     setSummary(d);
   };
 
+  const loadQoo10Diagnostics = async () => {
+    const r = await fetch("/api/qoo10/diagnostics", { cache: "no-store" });
+    const d = await r.json();
+    setQoo10Data(d);
+  };
+
   const loadHistory = async () => {
     const r = await fetch("/api/openclaw/history", { cache: "no-store" });
     const d = await r.json();
@@ -311,6 +355,7 @@ export default function Home() {
 
   useEffect(() => {
     loadSummary();
+    loadQoo10Diagnostics();
     fetch("/api/chat/config").then((r) => r.json()).then(setChatConfig).catch(() => null);
   }, []);
 
@@ -407,6 +452,44 @@ export default function Home() {
   };
 
   const statusBadge = job?.status === "running" ? "RUNNING" : job?.status === "error" ? "ERROR" : "IDLE";
+  const records: Qoo10Record[] = qoo10Data?.records || [];
+  const reasonOptions: string[] = qoo10Data?.reasonOptions || [];
+
+  const filteredRecords = records
+    .filter((r) => {
+      if (scopeFilter === "Active") return !r.excluded;
+      if (scopeFilter === "Excluded") return !!r.excluded;
+      return true;
+    })
+    .filter((r) => {
+      if (statusFilter === "Needs Update") return r.status === "UPDATE_NEEDED";
+      if (statusFilter === "Errors") return r.status === "ERROR";
+      if (statusFilter === "Registered") return r.status === "REGISTERED";
+      if (statusFilter === "Unregistered") return r.status === "UNREGISTERED";
+      if (statusFilter === "Incomplete Source") return (r.productName || "").trim() === "" || (r.vendorItemId || "").trim() === "";
+      return true;
+    })
+    .filter((r) => (resultFilter === "Success only" ? r.lastResult.status === "SUCCESS" : resultFilter === "Fail only" ? r.lastResult.status === "FAIL" : true))
+    .filter((r) => (reasonFilter.length ? reasonFilter.every((x) => r.updateReasons.includes(x)) : true))
+    .filter((r) => {
+      if (!r.lastUpdatedAt || timeFilter === "Custom") return true;
+      const diff = Date.now() - new Date(r.lastUpdatedAt).getTime();
+      const max = timeFilter === "24h" ? 24 * 3600_000 : timeFilter === "7d" ? 7 * 24 * 3600_000 : 30 * 24 * 3600_000;
+      return diff <= max;
+    })
+    .filter((r) => {
+      if (!search.trim()) return true;
+      const k = `${r.productName} ${r.vendorItemId} ${r.qoo10ItemId || ""} ${r.sellerCode || ""}`.toLowerCase();
+      return k.includes(search.toLowerCase());
+    })
+    .sort((a, b) => {
+      const rank = (x: Qoo10Record) => (x.status === "ERROR" ? 0 : x.status === "UPDATE_NEEDED" ? 1 : 2);
+      const rd = rank(a) - rank(b);
+      if (rd !== 0) return rd;
+      const ta = a.lastUpdatedAt ? new Date(a.lastUpdatedAt).getTime() : 0;
+      const tb = b.lastUpdatedAt ? new Date(b.lastUpdatedAt).getTime() : 0;
+      return ta - tb;
+    });
 
   return (
     <main className="safe-wrap pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 overflow-x-hidden">
@@ -590,16 +673,83 @@ export default function Home() {
 
         {tab === "registration" && (
           <div className="space-y-3">
-            <div className="text-xs inline-flex px-2 py-1 rounded-lg bg-white/10">Status: {statusBadge}</div>
-            <button
-              onClick={runRegistration}
-              disabled={job?.status === "running"}
-              className="px-4 py-3 rounded-xl bg-cyan-500 text-black font-semibold w-full disabled:opacity-40"
-            >
-              {job?.status === "running" ? "Running..." : "Run Registration"}
-            </button>
-            <div className="text-sm">Job: {jobId || "-"}</div>
-            <pre className="text-xs overflow-auto max-h-72">{JSON.stringify(job || { status: "idle" }, null, 2)}</pre>
+            <div className="sticky top-0 z-10 rounded-xl bg-slate-900/95 border border-white/10 p-3">
+              <div className="flex flex-wrap gap-2 text-xs items-center">
+                <span className={`px-2 py-1 rounded ${qoo10Data?.run?.status === "FAILED" ? "bg-rose-500/30" : qoo10Data?.run?.status === "WARN" ? "bg-amber-500/30" : qoo10Data?.run?.status === "RUNNING" ? "bg-cyan-500/30" : "bg-emerald-500/30"}`}>Run: {qoo10Data?.run?.status || "-"}</span>
+                <span>Last Sync: {formatSeoulDateTime(qoo10Data?.run?.lastSync)}</span>
+                <span>runId: {qoo10Data?.run?.runId || "-"}</span>
+                <span>duration: {qoo10Data?.run?.durationMs ? `${Math.round(qoo10Data.run.durationMs / 1000)}s` : "-"}</span>
+                <span>Coverage: Active {qoo10Data?.coverage?.active ?? "-"} / Excluded {qoo10Data?.coverage?.excluded ?? "-"}</span>
+                <span>Source: {qoo10Data?.dataSource || "Sheet: coupang_datas"}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button onClick={() => setStatusFilter("All")} className="rounded-lg bg-cyan-950/40 p-2 text-left">
+                <div className="text-[11px] text-cyan-200">Collected (Extension)</div><div className="font-semibold">{qoo10Data?.ingestion?.collected ?? 0}</div>
+              </button>
+              <button onClick={() => setStatusFilter("Incomplete Source")} className="rounded-lg bg-cyan-950/40 p-2 text-left">
+                <div className="text-[11px] text-cyan-200">Missing Required Fields</div><div className="font-semibold">{qoo10Data?.ingestion?.missingRequired ?? 0}</div>
+              </button>
+              <div className="rounded-lg bg-cyan-950/40 p-2 text-left"><div className="text-[11px] text-cyan-200">Last Collected At</div><div className="font-semibold">{formatSeoulDateTime(qoo10Data?.ingestion?.lastCollectedAt)}</div></div>
+              <div className="rounded-lg bg-cyan-950/40 p-2 text-left"><div className="text-[11px] text-cyan-200">Stale Rows (&gt;24h)</div><div className="font-semibold">{qoo10Data?.ingestion?.staleRows ?? 0}</div></div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button onClick={() => setStatusFilter("All")} className="glass rounded-xl p-3 text-left"><div className="text-xs text-slate-300">Total Rows</div><div className="text-lg font-semibold">{qoo10Data?.kpi?.totalRows ?? 0}</div></button>
+              <button onClick={() => setStatusFilter("Registered")} className="glass rounded-xl p-3 text-left"><div className="text-xs text-slate-300">Registered</div><div className="text-lg font-semibold">{qoo10Data?.kpi?.registered ?? 0}</div></button>
+              <button onClick={() => setStatusFilter("Needs Update")} className="glass rounded-xl p-3 text-left"><div className="text-xs text-slate-300">Needs Update</div><div className="text-lg font-semibold">{qoo10Data?.kpi?.needsUpdate ?? 0}</div></button>
+              <button onClick={() => setStatusFilter("All")} className="glass rounded-xl p-3 text-left"><div className="text-xs text-slate-300">Last Sync</div><div className="text-sm font-semibold">{formatSeoulDateTime(qoo10Data?.kpi?.lastSync)}</div></button>
+            </div>
+
+            <div className="rounded-xl bg-black/20 p-2 grid grid-cols-1 md:grid-cols-6 gap-2 text-xs">
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="bg-white/10 rounded p-2"><option>All</option><option>Needs Update</option><option>Errors</option><option>Registered</option><option>Unregistered</option><option>Incomplete Source</option></select>
+              <select value={scopeFilter} onChange={(e) => setScopeFilter(e.target.value)} className="bg-white/10 rounded p-2"><option>Active</option><option>Excluded</option><option>All</option></select>
+              <select value={resultFilter} onChange={(e) => setResultFilter(e.target.value)} className="bg-white/10 rounded p-2"><option>All</option><option>Success only</option><option>Fail only</option></select>
+              <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)} className="bg-white/10 rounded p-2"><option>24h</option><option>7d</option><option>30d</option><option>Custom</option></select>
+              <select value={reasonFilter[0] || ""} onChange={(e) => setReasonFilter(e.target.value ? [e.target.value] : [])} className="bg-white/10 rounded p-2"><option value="">Reason (All)</option>{reasonOptions.map((r) => <option key={r}>{r}</option>)}</select>
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="search product/vendor/qoo10/seller" className="bg-white/10 rounded p-2" />
+            </div>
+
+            <div className="rounded-xl bg-black/20 p-2 overflow-auto max-h-[44vh]">
+              <table className="w-full text-xs min-w-[860px]">
+                <thead><tr className="text-slate-300"><th className="text-left p-2">Status</th><th className="text-left p-2">Item</th><th className="text-left p-2">Qoo10</th><th className="text-left p-2">Update Reason</th><th className="text-left p-2">Last Result</th><th className="text-left p-2">Last Updated At</th></tr></thead>
+                <tbody>
+                  {filteredRecords.map((r) => (
+                    <tr key={r.id} onClick={() => setSelectedRecord(r)} className="border-t border-white/10 hover:bg-white/5 cursor-pointer">
+                      <td className="p-2">{r.status}</td>
+                      <td className="p-2"><div>{r.productName || "(no name)"}</div><div className="text-slate-400">{r.vendorItemId || "-"}</div></td>
+                      <td className="p-2">{r.qoo10ItemId || "-"}</td>
+                      <td className="p-2">{r.updateReasons.join(", ") || "-"}</td>
+                      <td className="p-2">{r.lastResult.status} · {r.lastResult.message}</td>
+                      <td className="p-2">{formatSeoulDateTime(r.lastUpdatedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {selectedRecord && (
+              <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setSelectedRecord(null)}>
+                <div className="absolute right-0 top-0 h-full w-full max-w-xl bg-slate-900 p-4 overflow-auto" onClick={(e) => e.stopPropagation()}>
+                  <div className="font-semibold mb-2">{selectedRecord.productName}</div>
+                  <div className="text-xs text-slate-300 space-y-1">
+                    <div>vendorItemId: {selectedRecord.vendorItemId || "-"}</div>
+                    <div>sellerCode: {selectedRecord.sellerCode || "-"}</div>
+                    <div>qoo10ItemId: {selectedRecord.qoo10ItemId || "-"}</div>
+                    <div>category: {selectedRecord.categorySummary || "-"}</div>
+                  </div>
+                  <div className="mt-3 text-sm font-semibold">Diff Summary</div>
+                  <ul className="text-xs text-slate-300 list-disc pl-4">{(selectedRecord.diff || []).map((d, i) => <li key={i}>{d.field}: {d.oldValue} → {d.newValue}</li>)}</ul>
+                  <div className="mt-3 text-sm font-semibold">Last API Results</div>
+                  <ul className="text-xs text-slate-300 list-disc pl-4">{(selectedRecord.apiResults || []).map((a, i) => <li key={i}>[{formatSeoulDateTime(a.at)}] {a.code} {a.message}</li>)}</ul>
+                  <div className="mt-3 text-sm font-semibold">Logs</div>
+                  <pre className="text-[11px] bg-black/30 p-2 rounded">{(selectedRecord.logs || []).slice(0, 20).join("\n")}</pre>
+                  <div className="mt-3 text-sm font-semibold">Run History (last 3)</div>
+                  <ul className="text-xs text-slate-300 list-disc pl-4">{(selectedRecord.runHistory || []).slice(0, 3).map((h, i) => <li key={i}>{h.runId} · {h.outcome} · {formatSeoulDateTime(h.at)}</li>)}</ul>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

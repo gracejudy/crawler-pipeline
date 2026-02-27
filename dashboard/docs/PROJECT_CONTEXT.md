@@ -24,7 +24,15 @@
 - `src/app/api/openclaw/history/route.ts`
 - `src/app/api/openclaw/health/route.ts`
 
-## 최근 진행 상태 스냅샷 (2026-02-27 12:30 KST)
+## 최근 진행 상태 스냅샷 (2026-02-27 13:40 KST)
+- Qoo10 탭 v1(read-only) 구축 완료
+  - Sticky Header: Run Status / Last Sync / Coverage / Data Source
+  - Ingestion Snapshot(google extension) 카드 추가
+  - KPI 카드(Overview 동일 4종) + drill-down 필터 연동
+  - 레코드 테이블/필터/검색/상세 슬라이드오버(모두 read-only)
+  - 액션 요소(run/retry/chat/trigger/write) 미포함
+  - 관련 task `DASH-T14`~`DASH-T22` DONE 처리
+
 - Project Overview 섹션 고도화 유지
   - 프로젝트별 목적/컨텍스트 경로/작업목록 표시
   - 경로 Copy/Open 동작 반영

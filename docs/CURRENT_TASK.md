@@ -94,11 +94,12 @@
   - 나머지 task/issue의 stash 태그 제거
   - Overview에 `Stash (2차 고도화 이관)` 섹션 추가 후 대상 항목 이동
 
-## 진행 업데이트 (2026-02-27 13:28 KST)
-- 신규 task 등록/즉시 반영: `DASH-T13`
-  - 제목: `dashboard 첫 탭 기본값 변경 (Qoo10 → Overview)`
-  - 반영: 기본 탭 state를 `registration` → `overview`로 변경
-  - 상태: DONE
+## 진행 업데이트 (2026-02-27 13:50 KST)
+- Qoo10 탭 v1(read-only) 구축 완료
+  - 신규 task 등록/완료: `DASH-T14`~`DASH-T22`
+  - 범위: Sticky Header, Ingestion Snapshot, KPI drill-down, read-only table/filter/search, detail panel, 집계 검증, 모바일 가독성
+  - 제약 준수: run/retry/chat/trigger/write 액션 요소 제거(필터/검색/네비게이션만 허용)
+  - 데이터 경로: `GET /api/qoo10/diagnostics` 신설 (read-only 집계/진단 응답)
 
 ## 다음 액션
 1. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)

@@ -121,7 +121,7 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-T04",
         title: "Issues 섹션(tasks와 분리) 추가",
         description: "프로젝트별 이슈를 task와 별도로 등록/표시하는 섹션 추가",
-        status: "TODO" as TaskStatus,
+        status: "DONE" as TaskStatus,
         deployedOnce: true,
       },
       {

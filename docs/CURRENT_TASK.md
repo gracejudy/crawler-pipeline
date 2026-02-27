@@ -86,7 +86,13 @@
   - overview 코드 내 제어 상태 필드(`isRunning`, `rollbackReady`, `isActing`) 정리
   - 롤백 포인트: dashboard 변경 커밋 `chore(dashboard): finish DASH-T11 remove control-state remnants`
 
+## 진행 업데이트 (2026-02-27 12:55 KST)
+- `DASH-T12` 완료 처리
+  - stash 태그 유지 대상 확정: `DASH-T06`, `DASH-T09`, `DASH-T10`, `DASH-I02`, `DASH-I05`
+  - 위 대상만 `제어 기능은 2차 고도화(stash)` 태그 유지
+  - 나머지 task/issue의 stash 태그 제거
+  - Overview에 `Stash (2차 고도화 이관)` 섹션 추가 후 대상 항목 이동
+
 ## 다음 액션
-1. Dashboard: `DASH-T12` 수행(stash 섹션 추가, 제어 관련 task/issue 이동)
-2. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
-3. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)
+1. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
+2. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

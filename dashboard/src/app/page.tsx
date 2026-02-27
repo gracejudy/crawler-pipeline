@@ -49,6 +49,8 @@ const statusClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-rose-500/30 text-rose-200",
 };
 
+const CONTROL_STASH_IDS = new Set(["DASH-T06", "DASH-T09", "DASH-T10", "DASH-I02", "DASH-I05"]);
+
 function formatSeoulDateTime(raw?: string | null) {
   if (!raw) return "-";
   const d = new Date(raw);
@@ -193,7 +195,7 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-T12",
         title: "task에 stash 섹션 추가 + 제어 관련 항목 이동",
         description: "제어 기능 관련 task/issue를 stash 섹션으로 이동해 2차 고도화 참조용으로 보존",
-        status: "TODO" as TaskStatus,
+        status: "DONE" as TaskStatus,
       },
     ],
     issues: [
@@ -425,7 +427,13 @@ export default function Home() {
             <div className="glass rounded-xl p-3">
               <div className="text-sm font-semibold mb-2">Project Overview</div>
               <div className="space-y-2">
-                {projectOverview.map((p) => (
+                {projectOverview.map((p) => {
+                  const visibleTasks = p.tasks.filter((task) => !CONTROL_STASH_IDS.has(task.id));
+                  const stashTasks = p.tasks.filter((task) => CONTROL_STASH_IDS.has(task.id));
+                  const visibleIssues = (p.issues || []).filter((issue) => !CONTROL_STASH_IDS.has(issue.id));
+                  const stashIssues = (p.issues || []).filter((issue) => CONTROL_STASH_IDS.has(issue.id));
+
+                  return (
                   <div key={p.name} className="rounded-lg bg-white/5 p-3 text-xs">
                     <div className="font-semibold text-cyan-300">{p.name}</div>
                     <div className="text-slate-200 mt-1">{p.purpose}</div>
@@ -456,15 +464,12 @@ export default function Home() {
                     </div>
 
                     <details className="mt-3 rounded-md bg-black/20 p-2" open>
-                      <summary className="cursor-pointer text-slate-200 font-semibold">Tasks ({p.tasks.length})</summary>
+                      <summary className="cursor-pointer text-slate-200 font-semibold">Tasks ({visibleTasks.length})</summary>
                       <div className="mt-2 space-y-2">
-                        {p.tasks.map((task, idx) => (
+                        {visibleTasks.map((task, idx) => (
                           <div key={`${p.name}-${idx}`} className="rounded-md bg-white/5 p-2">
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
-                              <div className="flex flex-wrap gap-1 justify-end">
-                                <span className="px-2 py-1 rounded text-[11px] bg-white/10 text-slate-300">제어 기능은 2차 고도화(stash)</span>
-                              </div>
                             </div>
                             <div className="mt-1 text-slate-300">{task.description}</div>
                             <div className="mt-2 flex flex-wrap gap-1">
@@ -483,11 +488,11 @@ export default function Home() {
                       </div>
                     </details>
 
-                    {p.issues?.length ? (
+                    {visibleIssues.length ? (
                       <details className="mt-2 rounded-md bg-black/20 p-2" open>
-                        <summary className="cursor-pointer text-slate-200 font-semibold">Issues (tasks와 분리) ({p.issues.length})</summary>
+                        <summary className="cursor-pointer text-slate-200 font-semibold">Issues (tasks와 분리) ({visibleIssues.length})</summary>
                         <div className="mt-2 space-y-2">
-                          {p.issues.map((issue, i) => (
+                          {visibleIssues.map((issue, i) => (
                             <div key={`${p.name}-issue-${i}`} className="rounded-md bg-white/5 p-2">
                               <div className="flex items-center justify-between gap-2">
                                 <div className="font-semibold text-slate-100">[{issue.id}] {issue.title}</div>
@@ -499,8 +504,50 @@ export default function Home() {
                         </div>
                       </details>
                     ) : null}
+
+                    {stashTasks.length || stashIssues.length ? (
+                      <details className="mt-2 rounded-md bg-amber-950/30 p-2" open>
+                        <summary className="cursor-pointer text-amber-200 font-semibold">Stash (2차 고도화 이관)</summary>
+                        <div className="mt-2 space-y-2">
+                          {stashTasks.map((task, i) => (
+                            <div key={`${p.name}-stash-task-${i}`} className="rounded-md bg-white/5 p-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
+                                <span className="px-2 py-1 rounded text-[11px] bg-white/10 text-slate-300">제어 기능은 2차 고도화(stash)</span>
+                              </div>
+                              <div className="mt-1 text-slate-300">{task.description}</div>
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as TaskStatus[]).map((s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() => updateProjectTaskStatus(p.name, task, s)}
+                                    className={`px-2 py-0.5 rounded text-[10px] border ${effectiveTaskStatus(task) === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
+                                  >
+                                    TAG:{s}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+
+                          {stashIssues.map((issue, i) => (
+                            <div key={`${p.name}-stash-issue-${i}`} className="rounded-md bg-white/5 p-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-semibold text-slate-100">[{issue.id}] {issue.title}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-1 rounded text-[11px] bg-white/10 text-slate-300">제어 기능은 2차 고도화(stash)</span>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] ${statusClass[effectiveIssueStatus(issue)]}`}>{effectiveIssueStatus(issue)}</span>
+                                </div>
+                              </div>
+                              <div className="mt-1 text-slate-300">{issue.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { readFile } from "fs/promises";
 
-const truthy = (v: any) => /1|y|yes|true|done|registered|완료|등록|success/i.test(String(v || ""));
+const truthy = (v: unknown) => /1|y|yes|true|done|registered|완료|등록|success/i.test(String(v || ""));
+
+const normalizeHeader = (h: unknown) => String(h || "").toLowerCase().replace(/[^a-z0-9가-힣]/g, "");
 
 export async function GET() {
   try {
@@ -24,28 +26,48 @@ export async function GET() {
     const headers = rows[0] ?? [];
     const body = rows.slice(1);
 
-    const find = (...keys: string[]) => headers.findIndex((h: string) => keys.some((k) => String(h).toLowerCase().includes(k.toLowerCase())));
-    const iName = find("product", "상품명", "name");
-    const iVendor = find("vendoritemid", "vendor", "상품id");
-    const iSeller = find("sellercode", "seller");
-    const iQoo10 = find("qoo10itemid", "qoo10", "goodsno");
-    const iReg = find("registered", "registrationstatus", "등록");
-    const iNeed = find("needsupdate", "update");
-    const iReason = find("reason", "update_reason", "사유");
-    const iRes = find("lastresult", "result", "응답");
-    const iErr = find("error", "fail", "message");
-    const iUpdated = find("lastupdated", "updated", "sync");
-    const iCollected = find("collected", "수집", "ingested");
-    const iExcluded = find("excluded", "삭제", "inactive");
+    const normalizedHeaders = headers.map(normalizeHeader);
+    const findExact = (...keys: string[]) => {
+      const keySet = new Set(keys.map((k) => k.toLowerCase()));
+      return normalizedHeaders.findIndex((h) => keySet.has(h));
+    };
+    const findIncludes = (...keys: string[]) => normalizedHeaders.findIndex((h) => keys.some((k) => h.includes(k.toLowerCase())));
+
+    const iName = findIncludes("product", "상품명", "name");
+    const iVendor = findIncludes("vendoritemid", "vendor", "상품id");
+    const iSeller = findIncludes("sellercode", "seller");
+    const iQoo10 = findIncludes("qoo10itemid", "qoo10", "goodsno");
+    const iReg = findIncludes("registered", "registrationstatus", "등록");
+    const iNeed = (() => {
+      const exact = findExact("needsupdate", "updateyn", "updateflag", "업데이트필요", "수정필요");
+      if (exact >= 0) return exact;
+      return findIncludes("needsupdate");
+    })();
+    const iReason = findIncludes("reason", "updatereason", "사유");
+    const iRes = findIncludes("lastresult", "result", "응답");
+    const iErr = findIncludes("error", "fail", "message");
+    const iUpdated = findIncludes("lastupdated", "updated", "sync");
+    const iCollected = findIncludes("collected", "수집", "ingested");
+    const iExcluded = findIncludes("excluded", "삭제", "inactive");
 
     const records = body.map((r: string[], idx: number) => {
       const productName = String(r[iName] || "");
       const vendorItemId = String(r[iVendor] || "");
       const qoo10ItemId = String(r[iQoo10] || "");
       const registered = !!qoo10ItemId || truthy(r[iReg]);
-      const needsUpdate = truthy(r[iNeed]);
       const hasError = /error|fail|실패/i.test(`${r[iRes] || ""} ${r[iErr] || ""}`);
-      const status = hasError ? "ERROR" : needsUpdate ? "UPDATE_NEEDED" : registered ? "REGISTERED" : "UNREGISTERED";
+
+      // HOTFIX DASH-I06/07:
+      // - needsUpdate는 명시적 컬럼 값이 truthy일 때만 true
+      // - needsUpdate 공집합 + 미등록(qoo10 없음)은 UNREGISTERED
+      const needsUpdateRaw = iNeed >= 0 ? r[iNeed] : undefined;
+      const needsUpdate = iNeed >= 0 ? truthy(needsUpdateRaw) : false;
+
+      let status: "ERROR" | "UPDATE_NEEDED" | "REGISTERED" | "UNREGISTERED" = "UNREGISTERED";
+      if (hasError) status = "ERROR";
+      else if (!registered) status = "UNREGISTERED";
+      else if (needsUpdate) status = "UPDATE_NEEDED";
+      else status = "REGISTERED";
       const reasons = String(r[iReason] || "").split(/[;,/|]/).map((x) => x.trim()).filter(Boolean);
       const lastResult = hasError ? "FAIL" : "SUCCESS";
       const lastUpdatedAt = r[iUpdated] ? new Date(r[iUpdated]).toISOString() : undefined;

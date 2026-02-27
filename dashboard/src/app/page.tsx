@@ -52,6 +52,32 @@ const statusClass: Record<TaskStatus, string> = {
   BLOCKED: "bg-rose-500/30 text-rose-200",
 };
 
+function formatSeoulDateTime(raw?: string | null) {
+  if (!raw) return "-";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(d);
+
+  const v = (type: string) => parts.find((p) => p.type === type)?.value || "";
+  const dayPeriod = v("dayPeriod") || "";
+  const year = v("year");
+  const month = v("month");
+  const day = v("day");
+  const hour = v("hour");
+  const minute = v("minute");
+
+  return `${year}-${month}-${day} ${dayPeriod} ${hour}:${minute}`.trim();
+}
+
 const effectiveTaskStatus = (task: ProjectTask): TaskStatus => {
   if (task.status === "DONE") return "DONE";
   if (task.deployedOnce) return "IN_PROGRESS";
@@ -424,7 +450,7 @@ export default function Home() {
               <Card title="Total Rows" value={String(summary?.rowCount ?? "-")} />
               <Card title="Registered" value={String(summary?.registeredCount ?? "-")} />
               <Card title="Needs Update" value={String(summary?.needsUpdateCount ?? "-")} />
-              <Card title="Last Sync" value={summary?.lastSyncTime || "-"} />
+              <Card title="Last Sync" value={formatSeoulDateTime(summary?.lastSyncTime)} />
             </div>
 
             <div className="glass rounded-xl p-3">

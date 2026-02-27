@@ -67,7 +67,21 @@
 - 최신 배포 반영 완료
   - `https://roughdiamond-dashboard.vercel.app` alias 갱신
 
+## 진행 업데이트 (2026-02-27 12:30 KST)
+- Dashboard 1차 목표를 `관측 중심`으로 재정의
+  - 제어 기능은 2차 고도화로 이관 결정
+- Task/Issue 구조 업데이트
+  - 신규 task: `DASH-T06`~`DASH-T12` 등록
+  - 신규 issue: `DASH-I04`, `DASH-I05` 등록
+  - `DASH-T10` 완료 처리(1차 목표에서 제어 기능 제외 기준 확정)
+- `DASH-T11` 착수
+  - task 영역 실행/중지/롤백 버튼 제거 반영(1차)
+- 연결 안정화 이슈
+  - quick tunnel 단절 시 OPENCLAW_BASE_URL 무효화로 send 실패 재발
+  - 근본 조치 task: `DASH-T09`(named tunnel 고정) 진행 중
+
 ## 다음 액션
-1. Dashboard: Task 실행/중지/롤백 시 OpenClaw 응답 이력(Chat/Logs) E2E 검증 캡처
-2. Dashboard: task 상태/실행 상태 영속화(localStorage 또는 서버 저장) 여부 결정 및 반영
-3. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)
+1. Dashboard: `DASH-T11` 완료(제어 관련 잔여 코드/문구 정리 + 롤백 포인트 명시)
+2. Dashboard: `DASH-T12` 수행(stash 섹션 추가, 제어 관련 task/issue 이동)
+3. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
+4. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

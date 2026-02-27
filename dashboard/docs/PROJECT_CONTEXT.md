@@ -24,16 +24,17 @@
 - `src/app/api/openclaw/history/route.ts`
 - `src/app/api/openclaw/health/route.ts`
 
-## 최근 진행 상태 스냅샷 (2026-02-26 19:28 KST)
-- Project Overview 섹션 고도화 완료
+## 최근 진행 상태 스냅샷 (2026-02-27 12:30 KST)
+- Project Overview 섹션 고도화 유지
   - 프로젝트별 목적/컨텍스트 경로/작업목록 표시
   - 경로 Copy/Open 동작 반영
-- 프로젝트별 task 상태 태그 + 수동 상태변경 버튼 반영
-- task 제어 동작 추가
-  - 실행: OpenClaw `/sessions/send`로 작업 시작 전달
-  - 중지: 중지 전 롤백 필요 경고/확인
-  - 롤백: TODO + rollbackReady 조건에서만 노출/실행
-- DONE 상태 task는 실행 버튼 비노출로 정리
+- task/issue ID 체계 반영
+  - `[DASH-Txx]`, `[DASH-Ixx]` 형식으로 표기
+- 1차 범위 조정 반영
+  - task 제어 버튼(실행/중지/롤백) 제거 시작
+  - 제어 기능은 2차 고도화(stash) 트랙으로 이관 중
+- 표시 포맷 개선
+  - Last Sync를 KST(예: `2026-02-27 오전 10:17`) 형식으로 표시
 - 운영 URL 최신 반영: `https://roughdiamond-dashboard.vercel.app`
 
 ## 진행 업데이트 (2026-02-27 12:20 KST)

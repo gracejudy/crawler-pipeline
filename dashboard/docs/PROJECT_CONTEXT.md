@@ -24,7 +24,11 @@
 - `src/app/api/openclaw/history/route.ts`
 - `src/app/api/openclaw/health/route.ts`
 
-## 최근 진행 상태 스냅샷 (2026-02-27 13:40 KST)
+## 최근 진행 상태 스냅샷 (2026-02-27 14:20 KST)
+- 세션 초기화 대비 상태 동기화 완료
+- 분류 정정 반영
+  - `DASH-T23`~`DASH-T25`는 CORE 기능 추가 성격으로 재분류되어 CORE(`CORE-T04`~`CORE-T06`)로 이관
+  - DASHBOARD에서는 active work로 취급하지 않음
 - Qoo10 탭 v1(read-only) 구축 완료
   - Sticky Header: Run Status / Last Sync / Coverage / Data Source
   - Ingestion Snapshot(google extension) 카드 추가

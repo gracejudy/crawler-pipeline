@@ -112,6 +112,15 @@
     - 추가 썸네일 URL 600x600ex 정규화
   - 정정 원칙: 내용/Acceptance/Done-when/상태(TODO) 유지, DASHBOARD active 목록에서는 제거
 
+## 진행 업데이트 (2026-02-27 14:20 KST)
+- 세션 초기화 대비 상태 동기화 완료
+- 소유권 정정 반영 확정
+  - `DASH-T23`/`DASH-T24`/`DASH-T25`는 DASHBOARD active에서 제거
+  - 동일 내용/Acceptance/Done-when/상태(TODO)로 CORE에 `CORE-T04`/`CORE-T05`/`CORE-T06` 이관
+- 배포 반영 상태
+  - production alias: `https://roughdiamond-dashboard.vercel.app`
+  - 최신 배포: `https://roughdiamond-dashboard-8t180sw15-meaningfuljy-9245s-projects.vercel.app`
+
 ## 다음 액션
 1. Dashboard: `DASH-I06`/`DASH-I07` 집계·상태 핫픽스 구현
 2. CORE: `CORE-T04`~`CORE-T06` extension 수집 로직 핫픽스 구현

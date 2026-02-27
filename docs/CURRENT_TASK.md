@@ -94,6 +94,12 @@
   - 나머지 task/issue의 stash 태그 제거
   - Overview에 `Stash (2차 고도화 이관)` 섹션 추가 후 대상 항목 이동
 
+## 진행 업데이트 (2026-02-27 13:20 KST)
+- `DASH-T08` 완료 처리
+  - Overview의 일반 Tasks를 `진행중/미완료` 기준으로 분리
+  - 완료 항목은 `Completed Tasks` 별도 리스트로 이동
+  - `Completed Tasks`는 기본 접힘(default closed)으로 표시
+
 ## 다음 액션
 1. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
 2. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

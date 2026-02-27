@@ -171,7 +171,7 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-T08",
         title: "완료된 작업 별도 리스트 분리(기본 접힘)",
         description: "완료된 작업은 tasks 리스트와 분리하여 별도 섹션으로 표시하고 기본은 접힌 상태로 관리",
-        status: "TODO" as TaskStatus,
+        status: "DONE" as TaskStatus,
       },
       {
         id: "DASH-T09",
@@ -429,6 +429,8 @@ export default function Home() {
               <div className="space-y-2">
                 {projectOverview.map((p) => {
                   const visibleTasks = p.tasks.filter((task) => !CONTROL_STASH_IDS.has(task.id));
+                  const activeTasks = visibleTasks.filter((task) => effectiveTaskStatus(task) !== "DONE");
+                  const completedTasks = visibleTasks.filter((task) => effectiveTaskStatus(task) === "DONE");
                   const stashTasks = p.tasks.filter((task) => CONTROL_STASH_IDS.has(task.id));
                   const visibleIssues = (p.issues || []).filter((issue) => !CONTROL_STASH_IDS.has(issue.id));
                   const stashIssues = (p.issues || []).filter((issue) => CONTROL_STASH_IDS.has(issue.id));
@@ -464,9 +466,9 @@ export default function Home() {
                     </div>
 
                     <details className="mt-3 rounded-md bg-black/20 p-2" open>
-                      <summary className="cursor-pointer text-slate-200 font-semibold">Tasks ({visibleTasks.length})</summary>
+                      <summary className="cursor-pointer text-slate-200 font-semibold">Tasks ({activeTasks.length})</summary>
                       <div className="mt-2 space-y-2">
-                        {visibleTasks.map((task, idx) => (
+                        {activeTasks.map((task, idx) => (
                           <div key={`${p.name}-${idx}`} className="rounded-md bg-white/5 p-2">
                             <div className="flex items-start justify-between gap-2">
                               <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
@@ -487,6 +489,33 @@ export default function Home() {
                         ))}
                       </div>
                     </details>
+
+                    {completedTasks.length ? (
+                      <details className="mt-2 rounded-md bg-black/20 p-2">
+                        <summary className="cursor-pointer text-slate-300 font-semibold">Completed Tasks ({completedTasks.length})</summary>
+                        <div className="mt-2 space-y-2">
+                          {completedTasks.map((task, idx) => (
+                            <div key={`${p.name}-completed-${idx}`} className="rounded-md bg-white/5 p-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="font-semibold text-slate-100">[{task.id}] {task.title}</div>
+                              </div>
+                              <div className="mt-1 text-slate-300">{task.description}</div>
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {(["TODO", "IN_PROGRESS", "DONE", "BLOCKED"] as TaskStatus[]).map((s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() => updateProjectTaskStatus(p.name, task, s)}
+                                    className={`px-2 py-0.5 rounded text-[10px] border ${effectiveTaskStatus(task) === s ? "bg-cyan-500/40 text-cyan-100 border-cyan-300/50" : "bg-white/5 text-slate-300 border-white/10"}`}
+                                  >
+                                    TAG:{s}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : null}
 
                     {visibleIssues.length ? (
                       <details className="mt-2 rounded-md bg-black/20 p-2" open>

@@ -101,6 +101,19 @@
   - 제약 준수: run/retry/chat/trigger/write 액션 요소 제거(필터/검색/네비게이션만 허용)
   - 데이터 경로: `GET /api/qoo10/diagnostics` 신설 (read-only 집계/진단 응답)
 
+## 진행 업데이트 (2026-02-27 14:05 KST)
+- HOTFIX work item 등록 완료 (ID 자동 채번)
+  - Issues: `DASH-I06`, `DASH-I07`
+    - NeedsUpdate 공집합 집계 오분류 수정
+    - needsUpdate 공집합 + 미등록 케이스 상태 표기 일관화(UNREGISTERED)
+  - Tasks: `DASH-T23`, `DASH-T24`, `DASH-T25`
+    - 옵션 value 텍스트 수집
+    - 상세페이지 이미지 URL 전체 수집
+    - 추가 썸네일 URL 600x600ex 정규화
+  - 모든 항목 HOTFIX 우선순위, 상태 TODO로 등록
+
 ## 다음 액션
-1. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
-2. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)
+1. Dashboard: `DASH-I06`/`DASH-I07` 집계·상태 핫픽스 구현
+2. Dashboard: `DASH-T23`~`DASH-T25` extension 수집 로직 핫픽스 구현
+3. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
+4. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

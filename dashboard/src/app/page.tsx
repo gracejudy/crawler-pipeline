@@ -233,6 +233,24 @@ const initialProjectOverview: ProjectItem[] = [
       { id: "DASH-T20", title: "Detail panel read-only", description: "Diff/API 요약/로그/런이력 포함 슬라이드오버 구현", status: "DONE" as TaskStatus },
       { id: "DASH-T21", title: "Metrics aggregation validation", description: "KPI/ingestion 집계 규칙 lightweight 검증 로직 반영", status: "DONE" as TaskStatus },
       { id: "DASH-T22", title: "Visual polish mobile-first", description: "모바일 가독성/배지/간격 튜닝", status: "DONE" as TaskStatus },
+      {
+        id: "DASH-T23",
+        title: "[HOTFIX] Extension 옵션 값(옵션 항목) 수집 보강",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | HTML Label=색상 × 구성품 × 수량 | Value=혼합색상 × 숟가락 + 젓가락 + 케이스 × 1세트\nAcceptance: 옵션 value 텍스트를 렌더링 값 기준으로 trim/공백정규화 후 저장. 다중 옵션 row 존재 시 전체 수집(뉴라인 또는 JSON 배열 문자열 포맷 고정).\nDone when: 샘플 vendorItemId(73359457956) 포함 케이스에서 옵션 값 누락 0건, 저장 포맷 일관성 검증 통과.",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "DASH-T24",
+        title: "[HOTFIX] 상세페이지 이미지 URL 전체 수집",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | example=https://thumbnail.coupangcdn.com/thumbnails/remote/q89/image/rs_quotation_api/sclk56uh/1106710cf33a4f0182aa028636e960ad.jpg\nAcceptance: 상품 상세 섹션의 이미지 URL을 누락 없이 전부 수집. 다중 URL 저장 포맷(뉴라인 또는 JSON 배열 문자열) 고정.\nDone when: 샘플 상품에서 상세 이미지 URL 전체가 시트에 저장되고 재수집 시 순서/포맷 안정적으로 유지.",
+        status: "TODO" as TaskStatus,
+      },
+      {
+        id: "DASH-T25",
+        title: "[HOTFIX] 추가 썸네일 URL 600x600ex 정규화",
+        description: "우선순위: HOTFIX\nRefs: vendorItemId=73359457956 | input=https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg | output=https://thumbnail.coupangcdn.com/thumbnails/remote/600x600ex/image/retail/images/1687346096889051-f11d95b2-4e90-4145-9e31-d0bb686078a5.jpg\nAcceptance: /thumbnails/remote/{WxH}ex/ 패턴에 한해 안전 치환으로 600x600ex 저장. 다중 URL 전부 정규화. 비매칭 URL은 원본 유지(비손상).\nDone when: 샘플 포함 케이스에서 정규화 정확도 100%, 비매칭 URL 오염 0건.",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {
@@ -266,6 +284,18 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-I05",
         title: "1차 목표에서 제어 기능 제외 후속 정리",
         description: "기존 제어 기능 요구사항/잔여 구현을 2차 고도화로 이관하고 문서·화면 반영 누락 방지",
+        status: "TODO",
+      },
+      {
+        id: "DASH-I06",
+        title: "[HOTFIX] NeedsUpdate 공집합 집계 오분류",
+        description: "우선순위: HOTFIX\n문제: Chrome extension 신규 수집 row에서 needsUpdate가 empty/null인데도 Needs Update KPI에 포함됨.\nAcceptance: Needs Update는 needsUpdate가 YES/true 등 명시적 값일 때만 집계. empty/null/undefined는 집계 제외.\nDone when: KPI 집계 테스트/실데이터 검증에서 공집합 needsUpdate row가 Needs Update에 0건 반영.",
+        status: "TODO",
+      },
+      {
+        id: "DASH-I07",
+        title: "[HOTFIX] needsUpdate 비어있을 때 상태 표기 불일치",
+        description: "우선순위: HOTFIX\n문제: needsUpdate empty + qoo10 등록식별자 없음 케이스가 UPDATE_NEEDED로 보이는 상태 불일치.\nAcceptance: 해당 케이스는 UNREGISTERED(등록 필요)로 표기. 테이블/상세패널 상태 일관성 유지.\nDone when: vendorItemId=73359457956 포함 검증에서 table/detail 모두 동일한 UNREGISTERED 상태를 표시.",
         status: "TODO",
       },
     ],

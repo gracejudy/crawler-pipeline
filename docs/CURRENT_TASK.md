@@ -94,11 +94,11 @@
   - 나머지 task/issue의 stash 태그 제거
   - Overview에 `Stash (2차 고도화 이관)` 섹션 추가 후 대상 항목 이동
 
-## 진행 업데이트 (2026-02-27 13:20 KST)
-- `DASH-T08` 완료 처리
-  - Overview의 일반 Tasks를 `진행중/미완료` 기준으로 분리
-  - 완료 항목은 `Completed Tasks` 별도 리스트로 이동
-  - `Completed Tasks`는 기본 접힘(default closed)으로 표시
+## 진행 업데이트 (2026-02-27 13:28 KST)
+- 신규 task 등록/즉시 반영: `DASH-T13`
+  - 제목: `dashboard 첫 탭 기본값 변경 (Qoo10 → Overview)`
+  - 반영: 기본 탭 state를 `registration` → `overview`로 변경
+  - 상태: DONE
 
 ## 다음 액션
 1. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)

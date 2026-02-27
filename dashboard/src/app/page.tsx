@@ -197,6 +197,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "제어 기능 관련 task/issue를 stash 섹션으로 이동해 2차 고도화 참조용으로 보존",
         status: "DONE" as TaskStatus,
       },
+      {
+        id: "DASH-T13",
+        title: "dashboard 첫 탭 기본값 변경 (Qoo10 → Overview)",
+        description: "초기 진입 시 registration 탭 대신 overview 탭이 기본으로 열리도록 변경",
+        status: "DONE" as TaskStatus,
+      },
     ],
     issues: [
       {
@@ -237,7 +243,7 @@ const initialProjectOverview: ProjectItem[] = [
 ];
 
 export default function Home() {
-  const [tab, setTab] = useState<Tab>("registration");
+  const [tab, setTab] = useState<Tab>("overview");
   const [summary, setSummary] = useState<any>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<any>(null);

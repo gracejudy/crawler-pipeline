@@ -130,6 +130,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "모든 task/issue에 고유 ID를 부여하고 ID + title 형식으로 표시",
         status: "DONE" as TaskStatus,
       },
+      {
+        id: "DASH-T06",
+        title: "issues 섹션에 실행버튼 추가",
+        description: "issues 항목에도 task와 유사한 실행 제어 버튼을 추가",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {

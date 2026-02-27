@@ -174,6 +174,12 @@ const initialProjectOverview: ProjectItem[] = [
         description: "완료된 작업은 tasks 리스트와 분리하여 별도 섹션으로 표시하고 기본은 접힌 상태로 관리",
         status: "TODO" as TaskStatus,
       },
+      {
+        id: "DASH-T09",
+        title: "OpenClaw 연결 URL 영구 named tunnel 고정",
+        description: "quick tunnel 대신 영구 Cloudflare named tunnel로 OPENCLAW_BASE_URL을 고정해 실행 안정성 확보",
+        status: "TODO" as TaskStatus,
+      },
     ],
     issues: [
       {

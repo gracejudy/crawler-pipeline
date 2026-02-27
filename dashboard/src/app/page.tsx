@@ -21,9 +21,6 @@ type ProjectTask = {
   description: string;
   status: TaskStatus;
   deployedOnce?: boolean;
-  isRunning?: boolean;
-  rollbackReady?: boolean;
-  isActing?: boolean;
 };
 
 type ProjectIssueStatus = "TODO" | "IN_PROGRESS" | "DONE" | "BLOCKED";
@@ -190,7 +187,7 @@ const initialProjectOverview: ProjectItem[] = [
         id: "DASH-T11",
         title: "task/issue 실행·중단 버튼 제거(롤백 포함)",
         description: "제어 기능 제거 방향에 맞춰 실행/중단 버튼 제거 및 되돌릴 수 있는 롤백 작업 항목 포함",
-        status: "TODO" as TaskStatus,
+        status: "DONE" as TaskStatus,
       },
       {
         id: "DASH-T12",

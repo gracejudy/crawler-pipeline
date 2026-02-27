@@ -80,8 +80,13 @@
   - quick tunnel 단절 시 OPENCLAW_BASE_URL 무효화로 send 실패 재발
   - 근본 조치 task: `DASH-T09`(named tunnel 고정) 진행 중
 
+## 진행 업데이트 (2026-02-27 12:45 KST)
+- `DASH-T11` 완료 처리
+  - task/issue 제어 버튼 제거 상태 유지 확인
+  - overview 코드 내 제어 상태 필드(`isRunning`, `rollbackReady`, `isActing`) 정리
+  - 롤백 포인트: dashboard 변경 커밋 `chore(dashboard): finish DASH-T11 remove control-state remnants`
+
 ## 다음 액션
-1. Dashboard: `DASH-T11` 완료(제어 관련 잔여 코드/문구 정리 + 롤백 포인트 명시)
-2. Dashboard: `DASH-T12` 수행(stash 섹션 추가, 제어 관련 task/issue 이동)
-3. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
-4. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)
+1. Dashboard: `DASH-T12` 수행(stash 섹션 추가, 제어 관련 task/issue 이동)
+2. Dashboard: `DASH-T09` named tunnel 고정(Cloudflare 로그인 완료 후 터널 영구화)
+3. CORE: backend→src 마이그레이션 트랙 재개(import 경로 정리 범위 확정)

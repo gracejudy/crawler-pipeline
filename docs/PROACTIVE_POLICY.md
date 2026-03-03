@@ -11,7 +11,7 @@
 - READY scope: **Now + Next** (Now 우선, Next는 조건 충족 시)
 
 ## Cost-Optimized Gate Cadence (v1)
-- v1 read-only gate is **sparse** (not daily):
+- v1 read-only gate is **frozen baseline** and **sparse** (not daily):
   - default: **every 3 days** OR
   - weekly mode: **every Monday**
 - Choose one cadence and keep it explicit in ops notes.
@@ -34,10 +34,17 @@
 - **Shadow Day:** NO MERGE.
 
 ## Failure Tags
-- `auth`: missing/invalid auth, permission failure
+### v1 (read-only)
+- `auth`: missing/invalid auth
 - `network`: DNS/socket/timeout/connectivity
 - `api`: upstream transient/5xx/rate-limit
 - `unknown`: anything else
+
+### v2 (write)
+- `permission`: category/seller permission
+- `validation`: payload/field validation
+- `approval-missing`: `QOO10_WRITE_APPROVED` 미설정
+- `auth`, `network`, `api`, `unknown`
 
 ## 2-Strike Auto Stop
 - `auth`: immediate BLOCKED (no retries beyond attempt 1)
@@ -47,7 +54,7 @@
 ## v2(write) Diagnostic Trigger Rule
 - v2(write) failure with **unclear cause** (`auth|network|api|unknown`) -> trigger v1 read-only gate to disambiguate environment vs payload issues.
 - v2(write) failure with **clear non-diagnostic cause** -> **skip v1**:
-  - permission/category mismatch
-  - validation error
-  - approval missing (`QOO10_WRITE_APPROVED` not set)
+  - `permission` (category/seller permission mismatch)
+  - `validation` error
+  - `approval-missing` (`QOO10_WRITE_APPROVED` not set)
 - Reports must explicitly state: `v1_triggered: true|false` and `v1_skip_reason` when skipped.

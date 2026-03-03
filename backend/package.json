@@ -4,7 +4,8 @@
   "type":"module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "gate": "node scripts/gate.qoo10.smoke.js",
+    "test": "npm run gate",
     "test:qoo10:register": "node scripts/qoo10.register.test.js"
   },
   "keywords": [],

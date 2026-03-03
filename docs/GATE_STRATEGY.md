@@ -2,7 +2,7 @@
 
 ## 목적
 - v1: 환경/연결성(신뢰 가능한 최소 신호)
-- v2: 쓰기 경로의 제한적 검증(명시 승인 필요)
+- v2: 쓰기 경로의 제한적 검증(안전 필드셋 탐색 → 게이트 승격)
 - v3: 풀 e2e 회귀(릴리즈급 검증)
 
 ---
@@ -38,42 +38,60 @@
 
 ---
 
-## v2 — Write Test Gate (Approved, Limited)
+## v2 — Write Strategy (Redesigned)
 
-### Command
+## v2a — Field Discovery Mode (current)
+
+### Goal
+- Discover SAFE overwrite-only dataset before v2 gate promotion.
+
+### Command (example)
 - `cd backend && QOO10_WRITE_APPROVED=1 npm run test:qoo10:write`
 
-### Approval rule
-- Without `QOO10_WRITE_APPROVED=1`:
-  - MUST exit with BLOCKED (exit 2) and clear message
+### Rules
+- Discovery phase: write tests allowed by default.
+- Exactly ONE non-key field changed per run.
+- Must perform write + read-back verification.
+- SellerCode/entity key must remain fixed.
+- No entity accumulation.
 
-### Scope (must be explicit)
-- One minimal write scenario only (lowest blast radius)
-- Test category default: 300003183 (override allowed via env)
-- Must use safe identifiers:
-  - test SellerCode namespace / markers
-  - no uncontrolled accumulation (prefer overwrite/update)
+### Logging (mandatory)
+- Log every attempt in `docs/V2_FIELD_DISCOVERY.md` with:
+  - `{ run_id, field, value_pattern, write_result, read_back_result, error_code, SAFE/UNSAFE }`
 
-### Frequency
-- On-demand only (explicit user approval)
-- Typical: before merging write-impact PRs or after significant core changes
-
-### Pass/Fail
-- PASS: exit 0
-- FAIL: exit 1
-- BLOCKED: exit 2 (approval missing)
-
-### Failure classification (required)
-- permission (category/seller permission)
+### Failure tags
+- permission
 - auth
 - network
 - api
 - validation
+- approval-missing
 - unknown
 
 ### Diagnostic rule
-- If FAIL and tag in (auth/network/api/unknown) → run v1 to disambiguate
-- If FAIL and tag in (permission/validation) → do NOT run v1; treat as write-scope issue
+- If FAIL tag in (auth/network/api/unknown) → run v1
+- If FAIL tag in (permission/validation/approval-missing) → do NOT run v1
+
+---
+
+## v2b — Write Gate Mode (future)
+- Activated only after explicit promotion.
+- Requires SAFE_FIELDSET.
+- Runs only on approved days or as required by merge policy.
+
+### Promotion rules (STRICT)
+Promote only if:
+1. SAFE_FIELDSET documented.
+2. 3 consecutive PASS runs.
+3. PASS runs have different run_id.
+4. Read-back verification included.
+5. No open write-related issues in FAILURE_REGISTRY.
+6. User explicitly says: "Promote v2 to gate."
+
+Upon promotion:
+- `QOO10_WRITE_GATE=1`
+- `QOO10_WRITE_APPROVED=0` (default block)
+- policy/docs updated
 
 ---
 
@@ -112,5 +130,7 @@
 - Agent performs merge only for approved batch
 - Gates required per PR type:
   - Read-only changes: v1 optional
-  - write-impact changes: v2 required (approved)
+  - write-impact changes:
+    - discovery stage: v2a evidence required
+    - promoted stage: v2b gate required
   - release: v3 required (approved)

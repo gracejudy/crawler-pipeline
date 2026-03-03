@@ -5,8 +5,10 @@
   "main": "index.js",
   "scripts": {
     "gate": "node scripts/gate.qoo10.smoke.js",
+    "smoke:readonly": "node scripts/qoo10.smoke.readonly.js",
     "test": "npm run gate",
-    "test:qoo10:register": "node scripts/qoo10.register.test.js"
+    "test:qoo10:register": "npm run smoke:readonly",
+    "test:qoo10:write": "node scripts/qoo10.write.test.js"
   },
   "keywords": [],
   "author": "",

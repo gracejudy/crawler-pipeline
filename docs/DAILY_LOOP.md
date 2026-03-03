@@ -19,3 +19,8 @@
 - Decision record: `docs/DECISION_LOG.md`
 - Failure mapping updates: `docs/FAILURE_REGISTRY.md`
 - Shadow Day report: `docs/SHADOW_DAY_REPORT.md`
+
+## Gate Purity Rules
+- Gate must invoke read-only smoke only: `npm run smoke:readonly`
+- Write path is excluded from gate: `npm run test:qoo10:write`
+- Write path requires explicit approval: `QOO10_WRITE_APPROVED=1`

@@ -12,9 +12,11 @@
 
 ## Gate/Smoke Standard
 - Gate command: `cd backend && npm run gate`
-- Smoke command (official only): `npm run test:qoo10:register`
+- Read-only smoke command (official only): `npm run smoke:readonly`
 - Qoo10 method: `ItemsLookup.GetSellerDeliveryGroupInfo`
 - Nature: **read-only smoke** (no product create/update)
+- Write test is explicitly excluded from gate: `npm run test:qoo10:write`
+- Write test requires explicit user approval (`QOO10_WRITE_APPROVED=1`).
 
 ## No-Accumulation Rule
 - Smoke is read-only, so overwrite-only is not applicable to remote state.

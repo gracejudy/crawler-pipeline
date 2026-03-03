@@ -63,7 +63,7 @@ function emit(attempt, tag, ok, summary) {
 
 async function runSmokeAttempt() {
   return new Promise((resolve) => {
-    const child = spawn('npm', ['run', 'test:qoo10:register'], {
+    const child = spawn('npm', ['run', 'smoke:readonly'], {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
       env: process.env,

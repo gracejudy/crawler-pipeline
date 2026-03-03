@@ -16,8 +16,9 @@ Now 우선 정책으로 2개 후보 선정:
 
 ## Gate Execution
 - Command: `cd backend && npm run gate`
-- Smoke inside gate: `npm run test:qoo10:register`
+- Smoke inside gate: `npm run smoke:readonly`
 - Smoke method: `ItemsLookup.GetSellerDeliveryGroupInfo` (official read-only)
+- Write path (`npm run test:qoo10:write`) excluded from gate and approval-gated
 
 ### Parallel run (2 workers)
 Exit codes:

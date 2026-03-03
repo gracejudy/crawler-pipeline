@@ -2,6 +2,9 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: join(process.cwd(), '.env') });
 
 const MAX_ATTEMPTS = 3; // initial 1 + retry 2
 const BACKOFF_MS = [1000, 2000];

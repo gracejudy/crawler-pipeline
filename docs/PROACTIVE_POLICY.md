@@ -6,9 +6,15 @@
 - Excluded: dashboard, unrelated threads
 
 ## Operating Window
-- Daily target: **08:00–11:00 KST**
+- Daily operation window: **08:00–11:00 KST**
 - Concurrency target: **2**
 - READY scope: **Now + Next** (Now 우선, Next는 조건 충족 시)
+
+## Cost-Optimized Gate Cadence (v1)
+- v1 read-only gate is **sparse** (not daily):
+  - default: **every 3 days** OR
+  - weekly mode: **every Monday**
+- Choose one cadence and keep it explicit in ops notes.
 
 ## Gate/Smoke Standard
 - Gate command: `cd backend && npm run gate`
@@ -37,3 +43,11 @@
 - `auth`: immediate BLOCKED (no retries beyond attempt 1)
 - `network`/`api`: retries allowed inside gate; if same task gate fails twice, mark BLOCKED
 - `unknown`: first failure escalates model tier for second run; if still fails, BLOCKED
+
+## v2(write) Diagnostic Trigger Rule
+- v2(write) failure with **unclear cause** (`auth|network|api|unknown`) -> trigger v1 read-only gate to disambiguate environment vs payload issues.
+- v2(write) failure with **clear non-diagnostic cause** -> **skip v1**:
+  - permission/category mismatch
+  - validation error
+  - approval missing (`QOO10_WRITE_APPROVED` not set)
+- Reports must explicitly state: `v1_triggered: true|false` and `v1_skip_reason` when skipped.

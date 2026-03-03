@@ -7,10 +7,13 @@
 
 ## Loop (Shadow Day / Strict)
 1. Pick up to 2 candidates from Now.
-2. For each candidate, run gate in `backend/`:
-   - `npm run gate`
-3. Collect structured attempt logs (JSON lines with `run_id`).
-4. Classify failures (`auth|network|api|unknown`).
+2. Execute by cadence:
+   - v1 read-only gate (`npm run gate`) runs on sparse schedule only (every 3 days or weekly Monday).
+   - On non-cadence days, skip v1 by default.
+3. If v2(write) is executed (explicit approval required) and fails:
+   - unclear cause (`auth|network|api|unknown`) -> trigger v1 (`npm run gate`) immediately.
+   - clear non-diagnostic cause (permission/category/validation/approval-missing) -> do **not** trigger v1.
+4. Collect structured attempt logs (JSON lines with `run_id`).
 5. Apply 2-strike policy and update decision log.
 6. Shadow Day mode: produce report only, no merge.
 
@@ -19,6 +22,9 @@
 - Decision record: `docs/DECISION_LOG.md`
 - Failure mapping updates: `docs/FAILURE_REGISTRY.md`
 - Shadow Day report: `docs/SHADOW_DAY_REPORT.md`
+- Report fields required:
+  - `v1_triggered: true|false`
+  - `v1_skip_reason: <text>` when skipped
 
 ## Gate Purity Rules
 - Gate must invoke read-only smoke only: `npm run smoke:readonly`

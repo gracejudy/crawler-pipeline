@@ -6,6 +6,8 @@
 - Scope: crawler-pipeline CORE, backend gate/smoke only
 - Concurrency target: 2
 - Merge mode: disabled (**Shadow Day: no merge performed**)
+- v1_triggered: true
+- v1_skip_reason: N/A (this run explicitly executed v1)
 
 ## Candidate READY Tasks (analysis-only pick, no implementation)
 Now 우선 정책으로 2개 후보 선정:

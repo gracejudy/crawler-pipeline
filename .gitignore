@@ -211,3 +211,4 @@ __marimo__/
 
 # Runtime logs / local probe artifacts
 backend/logs/*
+backend/state/*

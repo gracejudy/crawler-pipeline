@@ -29,10 +29,10 @@
    - Trial logging format:
      - `{run_id, ts, field, mutation, write_ok, read_ok, tag, verdict}`
 4. If v2 fails:
-   - `auth` => immediate STOP/BLOCKED and record in `docs/FAILURE_REGISTRY.md`
-   - `permission|validation` => STOP/BLOCKED and record
-   - `network|api` => retry within attempt limit; 2 consecutive trial failures => STOP/BLOCKED and record
-   - `unknown` => escalate model for second attempt; fail again => STOP/BLOCKED and record
+   - `auth` => immediate STOP/BLOCKED and record in runtime `backend/state/failure_registry.jsonl`
+   - `permission|validation` => STOP/BLOCKED and record in runtime state
+   - `network|api` => retry within attempt limit; 2 consecutive trial failures => STOP/BLOCKED and record in runtime state
+   - `unknown` => escalate model for second attempt; fail again => STOP/BLOCKED and record in runtime state
 5. Diagnostic trigger:
    - unclear cause (`auth|network|api|unknown`) -> trigger v1 (`npm run gate`) immediately.
    - clear non-diagnostic cause (`permission|validation|approval-missing`) -> do **not** trigger v1.
@@ -43,9 +43,9 @@
 ## Output Artifacts
 - Gate logs: `backend/.logs/gate/<run_id>.log`
 - v2a run logs: `backend/logs/v2a-field-discovery-<run_id>.jsonl`
-- v2a state/quota: `backend/logs/v2a-state.json`, `backend/logs/v2a-daily-quota.json`
+- v2a state/quota: `backend/state/v2a-state.json`, `backend/state/v2a-daily-quota.json`
+- v2a failure registry(runtime): `backend/state/failure_registry.jsonl`
 - Decision record: `docs/DECISION_LOG.md`
-- Failure mapping updates: `docs/FAILURE_REGISTRY.md`
 - Shadow Day report: `docs/SHADOW_DAY_REPORT.md`
 - Discovery ledger: `docs/V2_FIELD_DISCOVERY.md`
 - Report fields required:

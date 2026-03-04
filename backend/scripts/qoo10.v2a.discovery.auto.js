@@ -21,8 +21,10 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '..', '.env') });
 
 const LOG_DIR = join(__dirname, '..', 'logs');
-const STATE_PATH = join(LOG_DIR, 'v2a-state.json');
-const QUOTA_PATH = join(LOG_DIR, 'v2a-daily-quota.json');
+const STATE_DIR = join(__dirname, '..', 'state');
+const STATE_PATH = join(STATE_DIR, 'v2a-state.json');
+const QUOTA_PATH = join(STATE_DIR, 'v2a-daily-quota.json');
+const FAILURE_REGISTRY_PATH = join(STATE_DIR, 'failure_registry.jsonl');
 const RUN_ID = `v2a-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const RUN_LOG_PATH = join(LOG_DIR, `v2a-field-discovery-${RUN_ID}.jsonl`);
 
@@ -58,6 +60,7 @@ function kstNowParts() {
 
 function ensureDirs() {
   fs.mkdirSync(LOG_DIR, { recursive: true });
+  fs.mkdirSync(STATE_DIR, { recursive: true });
 }
 
 function readJsonSafe(p, fallback) {
@@ -174,13 +177,16 @@ function assertReadBack(field, detail, expected, itemCode) {
   return { ok: String(detail.ItemDetail || '').includes(expected), reason: 'description_marker_check' };
 }
 
-function updateFailureRegistry(note) {
-  const p = join(__dirname, '..', '..', 'docs', 'FAILURE_REGISTRY.md');
-  const stamp = nowIso();
-  const line = `- [${stamp}] v2a STOP: ${note}`;
-  const original = fs.readFileSync(p, 'utf8');
-  if (original.includes(line)) return;
-  fs.writeFileSync(p, `${original}\n${line}\n`);
+function appendFailureState({ reason_tag, field = null, attempts = null, verdict = 'BLOCKED' }) {
+  const rec = {
+    ts: nowIso(),
+    run_id: RUN_ID,
+    reason_tag,
+    field,
+    attempts,
+    verdict,
+  };
+  fs.appendFileSync(FAILURE_REGISTRY_PATH, JSON.stringify(rec) + '\n');
 }
 
 function blocked(msg, code = 2) {
@@ -295,7 +301,7 @@ async function main() {
           state.updatedAt = nowIso();
           writeJson(STATE_PATH, state);
           writeJson(QUOTA_PATH, { ...quota, writeCallsUsed: Number(quota.writeCallsUsed || 0) + writeCalls });
-          updateFailureRegistry(`${tag} / ${reason}`);
+          appendFailureState({ reason_tag: tag, field, attempts: attempt, verdict: 'BLOCKED' });
           blocked(`v2a STOP by ${tag}: ${reason}`);
         }
 
@@ -309,7 +315,7 @@ async function main() {
           state.updatedAt = nowIso();
           writeJson(STATE_PATH, state);
           writeJson(QUOTA_PATH, { ...quota, writeCallsUsed: Number(quota.writeCallsUsed || 0) + writeCalls });
-          updateFailureRegistry(`auth / ${msg}`);
+          appendFailureState({ reason_tag: 'auth', field, attempts: attempt, verdict: 'BLOCKED' });
           blocked(`v2a STOP by auth: ${msg}`);
         }
       }
@@ -325,7 +331,7 @@ async function main() {
         state.updatedAt = nowIso();
         writeJson(STATE_PATH, state);
         writeJson(QUOTA_PATH, { ...quota, writeCallsUsed: Number(quota.writeCallsUsed || 0) + writeCalls });
-        updateFailureRegistry(`${trialTag} / 2-strike reached (field=${field})`);
+        appendFailureState({ reason_tag: trialTag, field, attempts: MAX_ATTEMPTS_PER_FIELD, verdict: 'BLOCKED' });
         blocked(`v2a STOP: two consecutive trial failures (${trialTag})`);
       }
     } else {

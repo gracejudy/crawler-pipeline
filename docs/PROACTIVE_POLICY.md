@@ -44,7 +44,7 @@
 - Max **3 field trials** per session
 - Max **2 attempts** per field (including retry)
 - Max **10 total write-related calls** per session (`update + read-back`)
-- If v2a fails twice consecutively => **STOP (BLOCKED)** and record in `docs/FAILURE_REGISTRY.md`
+- If v2a fails twice consecutively => **STOP (BLOCKED)** and record in runtime state file `backend/state/failure_registry.jsonl`
 
 #### Execution Rules
 - Tier1 first: `ItemDescription`, `ItemQty`, `ItemTitle`

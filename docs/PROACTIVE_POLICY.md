@@ -25,16 +25,39 @@
 
 ## v2 Write Strategy (Redesign)
 
-### v2a — Field Discovery Mode (current)
+### v2a — Field Discovery Mode (automated in 08:00–11:00 loop)
 - Goal: discover SAFE overwrite-only fieldset before gate promotion.
-- Write tests are allowed by default **during discovery**.
-- `QOO10_WRITE_APPROVED=1` is default expectation in discovery runs.
-- Exactly **ONE non-key field** mutation per run.
-- Must execute **write + read-back verification** in same run.
-- Must keep entity key fixed (e.g., SellerCode / target entity key).
-- Must prevent entity accumulation.
-- Every run must be recorded in `docs/V2_FIELD_DISCOVERY.md` with:
-  - `{ run_id, field, value_pattern, write_result, read_back_result, error_code, SAFE/UNSAFE }`
+- Automation command: `cd backend && npm run test:qoo10:v2a:auto`
+- Fixed target only: `QOO10_TEST_ITEMCODE=1194045329`
+- Update path only: `ItemsBasic.UpdateGoods` (SetNewGoods 금지)
+- Read-back assert: `ItemsLookup.GetItemDetailInfo`
+- Keep `GetAllGoodsInfo` as secondary evidence only.
+
+#### Strict Preconditions (ALL required)
+1. `QOO10_WRITE_APPROVED=1`
+2. `QOO10_TEST_ITEMCODE` exists (missing => **BLOCKED exit 2**)
+3. Time window is 08:00–11:00 KST
+4. Daily quota available
+5. Not in STOP state from previous 2-strike failures
+
+#### Quotas (defaults)
+- Max **3 field trials** per session
+- Max **2 attempts** per field (including retry)
+- Max **10 total write-related calls** per session (`update + read-back`)
+- If v2a fails twice consecutively => **STOP (BLOCKED)** and record in `docs/FAILURE_REGISTRY.md`
+
+#### Execution Rules
+- Tier1 first: `ItemDescription`, `ItemQty`, `ItemTitle`
+- Exactly ONE field mutation per trial
+- Must perform write + read-back assertion in same trial
+- Trial log record (jsonl):
+  - `{run_id, ts, field, mutation, write_ok, read_ok, tag, verdict}`
+
+#### Stop Rules
+- `auth` => immediate STOP
+- `permission` / `validation` => STOP
+- `network` / `api` => retry within attempt limit; 2 consecutive trial failures => STOP
+- `unknown` => escalate model for second attempt, then STOP if still fail
 
 ### v2b — Write Gate Mode (future)
 - Activated only after explicit promotion.

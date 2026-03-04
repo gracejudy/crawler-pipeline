@@ -4,8 +4,14 @@
   "type":"module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:qoo10:register": "node scripts/qoo10.register.test.js"
+    "gate": "node scripts/gate.qoo10.smoke.js",
+    "smoke:readonly": "node scripts/qoo10.smoke.readonly.js",
+    "test": "npm run gate",
+    "test:qoo10:register": "npm run smoke:readonly",
+    "test:qoo10:write": "node scripts/qoo10.write.test.js",
+    "test:qoo10:update:overwrite": "node scripts/qoo10.update.overwrite.probe.js",
+    "test:qoo10:update:restore": "node scripts/qoo10.update.restore.js",
+    "test:qoo10:v2a:auto": "node scripts/qoo10.v2a.discovery.auto.js"
   },
   "keywords": [],
   "author": "",

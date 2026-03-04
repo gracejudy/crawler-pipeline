@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "timestamp": "2026-03-04T03:02:18.189Z",
+  "methodUpdate": "ItemsBasic.UpdateGoods",
+  "methodReadBack": "ItemsLookup.GetItemDetailInfo",
+  "methodList": "ItemsLookup.GetAllGoodsInfo",
+  "target": {
+    "itemCode": "1039966103",
+    "source": "auto:S1",
+    "sellerCode": "clothes0004",
+    "secondSubCat": "300002771"
+  },
+  "runs": [
+    {
+      "seq": 1,
+      "resultCode": 0,
+      "resultMsg": "SUCCESS",
+      "readBackTitle": "えくずるむリネン 7分丈 チョルニックワンピース生活韓服 冬 春夏秋女子韓服ワンピース ビッグサイズ 旧正月 プレゼント スカート チョゴリ [RID231 [OVW-93336832-A]",
+      "matched": true
+    },
+    {
+      "seq": 2,
+      "resultCode": 0,
+      "resultMsg": "SUCCESS",
+      "readBackTitle": "えくずるむリネン 7分丈 チョルニックワンピース生活韓服 冬 春夏秋女子韓服ワンピース ビッグサイズ 旧正月 プレゼント スカート チョゴリ [RID231 [OVW-93336832-B]",
+      "matched": true
+    }
+  ],
+  "beforeTotals": {
+    "S0": 0,
+    "S1": 12,
+    "S2": 226,
+    "S3": 0,
+    "S5": 0,
+    "S8": 0
+  },
+  "afterTotals": {
+    "S0": 0,
+    "S1": 12,
+    "S2": 226,
+    "S3": 0,
+    "S5": 0,
+    "S8": 0
+  },
+  "accumulationSignal": false
+}

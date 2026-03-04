@@ -8,7 +8,8 @@
     "smoke:readonly": "node scripts/qoo10.smoke.readonly.js",
     "test": "npm run gate",
     "test:qoo10:register": "npm run smoke:readonly",
-    "test:qoo10:write": "node scripts/qoo10.write.test.js"
+    "test:qoo10:write": "node scripts/qoo10.write.test.js",
+    "test:qoo10:update:overwrite": "node scripts/qoo10.update.overwrite.probe.js"
   },
   "keywords": [],
   "author": "",

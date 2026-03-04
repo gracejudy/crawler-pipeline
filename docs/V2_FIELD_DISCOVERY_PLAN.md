@@ -1,8 +1,17 @@
 # V2_FIELD_DISCOVERY_PLAN (after UPDATE_CONFIRMED)
 
 ## Preconditions
-- `UPDATE_PATH_SPEC.md` 경로로 overwrite-only 증적이 이미 확보되어야 함.
-- read-back API(`ItemsLookup.GetItemDetailInfo`)가 안정적으로 동작해야 함.
+- `UPDATE_PATH_SPEC.md`의 overwrite-only 증적 통과 상태여야 함.
+- read-back API(`ItemsLookup.GetItemDetailInfo`) 안정 동작 필요.
+- **고정 테스트 아이템 강제:** `QOO10_TEST_ITEMCODE` 필수
+  - 누락 시 **BLOCKED (exit 2)**
+  - auto target selection 금지
+
+## Fixed target rule (v2a)
+- v2a discovery runner는 아래를 하드코딩 규칙으로 사용:
+  - `ItemCode = process.env.QOO10_TEST_ITEMCODE`
+- same entity invariant:
+  - before/after `ItemNo === QOO10_TEST_ITEMCODE`
 
 ## Tier1 (Top 3)
 1. `ItemDescription`
@@ -18,25 +27,38 @@
 
 ### B) ItemQty
 - 패턴: 작은 정수 증감(예: +1 / -1)
-- 주의: 운영 영향 최소화 위해 S1 또는 지정 테스트 엔티티 우선
 
 ### C) ItemTitle
 - 패턴: suffix marker 추가 후 길이 제한 내 유지
 - 예: `... [V2A-<id>-TITLE]`
 
-## Read-back assertions
+## Read-back assertions (primary proof)
+- API: `ItemsLookup.GetItemDetailInfo(ItemCode)`
 - 공통:
-  - same `ItemCode`
   - `ResultCode == 0`
+  - `ItemNo == QOO10_TEST_ITEMCODE`
 - 필드별:
   - ItemDescription: marker 포함 여부
   - ItemQty: 기대 수량과 정확 일치
   - ItemTitle: marker 포함 여부
 
+## Secondary evidence (optional)
+- `ItemsLookup.GetAllGoodsInfo` 상태별 총량 before/after
+- 참고값이며 primary proof 대체 불가
+
+## Rollback / restore
+- 사전 baseline 저장: title/description/qty
+- 복구 명령:
+  - `cd backend && QOO10_WRITE_APPROVED=1 npm run test:qoo10:update:restore`
+- 복구 검증:
+  - same `ItemNo`
+  - baseline title/qty 일치
+  - description 복원
+
 ## UNSAFE stop rules
 1. read-back 실패 또는 필드 반영 불일치
-2. 동일 run에서 key field(`ItemCode`, category key) 변경 감지
-3. 예상치 못한 엔티티 증가/상태 총량 이상징후
+2. `ItemNo != QOO10_TEST_ITEMCODE`
+3. key field 변경 감지
 4. API/권한 오류 반복(동일 원인 2회)
 
 ## Execution gating

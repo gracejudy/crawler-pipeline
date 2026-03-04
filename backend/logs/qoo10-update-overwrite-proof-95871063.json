@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "timestamp": "2026-03-04T03:44:32.055Z",
+  "targetItemCode": "1194045329",
+  "methodUpdate": "ItemsBasic.UpdateGoods",
+  "primaryProofMethod": "ItemsLookup.GetItemDetailInfo",
+  "secondaryMethod": "ItemsLookup.GetAllGoodsInfo",
+  "primaryProof": {
+    "before": {
+      "itemNo": "1194045329",
+      "title": "Qoo10 Debug Test Item [OVW-95852749-B]"
+    },
+    "run1": {
+      "seq": 1,
+      "resultCode": 0,
+      "resultMsg": "SUCCESS",
+      "readBackItemNo": "1194045329",
+      "readBackTitle": "Qoo10 Debug Test Item [OVW-95852749-B] [OVW-95871063-A]",
+      "sameItem": true,
+      "matched": true,
+      "readBackAttempts": 1
+    },
+    "run2": {
+      "seq": 2,
+      "resultCode": 0,
+      "resultMsg": "SUCCESS",
+      "readBackItemNo": "1194045329",
+      "readBackTitle": "Qoo10 Debug Test Item [OVW-95852749-B] [OVW-95871063-B]",
+      "sameItem": true,
+      "matched": true,
+      "readBackAttempts": 1
+    },
+    "after": {
+      "itemNo": "1194045329",
+      "title": "Qoo10 Debug Test Item [OVW-95852749-B] [OVW-95871063-B]"
+    }
+  },
+  "secondaryEvidence": {
+    "beforeTotals": {
+      "S0": 0,
+      "S1": 12,
+      "S2": 225,
+      "S3": 0,
+      "S5": 0,
+      "S8": 0
+    },
+    "afterTotals": {
+      "S0": 0,
+      "S1": 12,
+      "S2": 225,
+      "S3": 0,
+      "S5": 0,
+      "S8": 0
+    },
+    "totalsChanged": false
+  },
+  "rollback": {
+    "baselineFile": "/Users/judy/dev/crawler-pipeline/backend/logs/qoo10-test-item-baseline-1194045329.json",
+    "restoreCommand": "cd backend && QOO10_WRITE_APPROVED=1 npm run test:qoo10:update:restore"
+  }
+}

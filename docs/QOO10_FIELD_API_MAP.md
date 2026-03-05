@@ -2,180 +2,173 @@
 
 > **목적:** Qoo10 QAPI에서 각 상품 필드를 실제로 제어하는 엔드포인트를 매핑한 문서.
 > **작성일:** 2026-03-05
-> **데이터 출처:** 실험적 API 탐색 + 실제 응답 분석 (테스트 아이템 ItemCode: 1194045329)
+> **데이터 출처:**
+> - 공식 QAPI 문서 내부 API (`QAPI.GetQAPIMethodList`) — 4,929개 메서드 전수 조회
+> - 실험적 API 탐색 + 실제 응답 분석 (테스트 아이템 ItemCode: 1194045329)
 
 ---
 
 ## 1. 핵심 발견 요약
 
-| 구분 | 내용 |
+| 구분 | 결론 |
 |---|---|
-| UpdateGoods 성공 후 ItemTitle 반영 | ✅ 즉시 반영 (readBackAttempts: 1, delay ~0ms) |
-| UpdateGoods 성공 후 ItemQty 반영 | ❌ **반영 안 됨** — 14초 대기 후에도 원본값 유지 |
-| UpdateGoods 성공 후 ItemDescription 반영 | ❌ **반영 안 됨** — 14초 대기 후에도 원본값 유지 |
-| ChangedDate 갱신 여부 | ✅ 갱신됨 (API는 성공, 필드만 무시됨) |
-| 재고 전용 API 존재 여부 | ❌ 확인 불가 (ItemsInventory, ItemsStock 서비스 없음) |
-| 설명 전용 API 존재 여부 | ❌ 없음 (SetDescription, UpdateDescription 메서드 없음) |
+| **ItemQty 전용 API** | ✅ 존재 — `ItemsOrder.SetGoodsPriceQty` (가격/수량/만료일 통합 수정) |
+| **ItemDescription 전용 API** | ✅ 존재 — `ItemsContents.EditGoodsContents` (상품상세 컨텐츠 수정) |
+| **UpdateGoods의 ItemQty 처리** | ❌ 반영 안 됨 — UpdateGoods는 ItemQty를 무시함 |
+| **UpdateGoods의 ItemDescription 처리** | ❌ 반영 안 됨 — UpdateGoods는 ItemDetail 필드를 무시함 |
+| **UpdateGoods의 ItemTitle 처리** | ✅ 즉시 반영 확인됨 |
+| **재고(옵션형) 전용 API** | ✅ `ItemsOptions.UpdateInventoryQtyUnit`, `EditGoodsInventory` 등 다수 존재 |
 
-**핵심 결론: UpdateGoods는 ItemQty, ItemDescription을 수락(ResultCode=0)하지만 실제로 반영하지 않는다. propagation delay가 아닌 필드 선택적 무시(field-selective ignore) 현상.**
+**핵심 결론: UpdateGoods는 제목/가격 등 기본 정보만 수정. 수량은 `ItemsOrder.SetGoodsPriceQty`, 설명은 `ItemsContents.EditGoodsContents`를 사용해야 한다.**
 
 ---
 
-## 2. 필드별 API 매핑 테이블
+## 2. 필드별 올바른 API 매핑
 
-| Field | API Endpoint | Update 가능 여부 | 비고 |
+| Field | 올바른 API Endpoint | Update 가능 | 비고 |
 |---|---|---|---|
-| ItemTitle | `ItemsBasic.UpdateGoods` | ✅ **YES** | 즉시 반영 확인 (2026-03-04 overwrite-proof 3회) |
-| ItemPrice | `ItemsBasic.UpdateGoods` | 🔲 미검증 | 페이로드에 포함되나 검증 실험 없음 |
-| ItemQty | `ItemsBasic.UpdateGoods` | ❌ **NO (실질적)** | ResultCode=0이나 반영 안 됨. 별도 API 없음 |
-| ItemDescription | `ItemsBasic.UpdateGoods` | ❌ **NO (실질적)** | ResultCode=0이나 반영 안 됨. 별도 API 없음 |
-| SecondSubCat | `ItemsBasic.UpdateGoods` | 🔲 미검증 | 필수 파라미터로 포함 |
-| ShippingNo | `ItemsBasic.UpdateGoods` | 🔲 미검증 | |
-| StandardImage | `ItemsBasic.UpdateGoods` | 🔲 미검증 | |
-| ExpireDate | `ItemsBasic.UpdateGoods` | 🔲 미검증 | |
-| AdultYN | `ItemsBasic.UpdateGoods` | 🔲 미검증 | |
-| RetailPrice | `ItemsBasic.UpdateGoods` | 🔲 미검증 | |
-| Options (variant) | `ItemsOptions.*` | ❌ **서비스 없음** | "Can't find service Name ItemsOptions" |
-| Option Qty | `ItemsOptions.*` | ❌ **서비스 없음** | ItemsOptions 전체 그룹 미존재 |
+| **ItemTitle** | `ItemsBasic.UpdateGoods` | ✅ YES | 즉시 반영 확인 |
+| **ItemPrice** | `ItemsBasic.UpdateGoods` 또는 `ItemsOrder.SetGoodsPriceQty` | ✅ YES | 두 경로 모두 가능 |
+| **ItemQty** | `ItemsOrder.SetGoodsPriceQty` | ✅ YES | UpdateGoods로는 불가 |
+| **ItemDescription** | `ItemsContents.EditGoodsContents` | ✅ YES | UpdateGoods로는 불가 |
+| **StandardImage (메인)** | `ItemsContents.EditGoodsImage` | ✅ YES | |
+| **멀티 이미지** | `ItemsContents.EditGoodsMultiImage` | ✅ YES | |
+| **헤더/풋터** | `ItemsContents.EditGoodsHeaderFooter` | ✅ YES | |
+| **옵션 (단일형)** | `ItemsOptions.EditGoodsOption` | ✅ YES | |
+| **옵션 (텍스트)** | `ItemsOptions.EditGoodsTextOption` | ✅ YES | |
+| **옵션 재고 (조합형)** | `ItemsOptions.UpdateInventoryQtyUnit` | ✅ YES | 옵션별 수량 수정 |
+| **옵션 재고 수량 가감** | `ItemsOptions.UpdateInventoryQtyPlusUnit` | ✅ YES | 현재 수량 기준 +/- |
+| **상품 상태** | `ItemsBasic.EditGoodsStatus` | ✅ YES | S1/S2 전환 등 |
+| **구매수량 제한** | `ItemsOrder.EditGoodsOrderLimit` | ✅ YES | |
+| **기본 할인** | `ItemsOrder.UpdateItemDiscount` | ✅ YES | |
+| **ExpireDate** | `ItemsOrder.SetGoodsPriceQty` | ✅ YES | 판매종료일 포함 |
 
 ---
 
-## 3. 존재 확인된 QAPI 서비스 그룹
+## 3. 공개 QAPI 서비스 전체 목록 (display_yn=Y)
 
-| Service Group | 존재 여부 | 확인 방법 |
+공식 문서 내부 API(`QAPI.GetQAPIMethodList`) 조회 결과 — **총 4,929개 메서드 중 공개 메서드:**
+
+### ItemsBasic (8개)
+| Method | 설명 |
+|---|---|
+| `SetNewGoods` | 신규 상품 등록 |
+| `UpdateGoods` | 상품 기본 정보 수정 (제목, 가격 등 — 수량/설명 제외) |
+| `EditGoodsStatus` | 거래상태 변경 |
+| `EditItemCondition` | 상품 컨디션 수정 |
+| `SetGoodsSubDeliveryGroup` | 배송 그룹 설정 |
+| `SetNewMoveGoods` | MOVE 상품 신규 등록 |
+| `UpdateMoveGoods` | MOVE 상품 수정 |
+| `EditMoveGoodsStatus` | MOVE 상품 상태 변경 |
+
+### ItemsOrder (6개) — **수량/가격 수정 핵심**
+| Method | 설명 |
+|---|---|
+| **`SetGoodsPriceQty`** | **판매가격 / 재고수량 / 판매종료일 수정** |
+| `SetGoodsPriceQtyBulk` | 위와 동일 (복수 처리) |
+| `UpdateItemDiscount` | 기본 할인 수정 |
+| `EditGoodsOrderLimit` | 구매수량 제한 수정 |
+| `EditMoveGoodsPrice` | MOVE 가격 설정 |
+| `UpdateMoveItemDiscount` | MOVE 기본 할인 수정 |
+
+### ItemsContents (4개) — **설명/이미지 수정 핵심**
+| Method | 설명 |
+|---|---|
+| **`EditGoodsContents`** | **상품 상세 컨텐츠(설명) 수정** |
+| `EditGoodsImage` | 메인 이미지 수정 |
+| `EditGoodsMultiImage` | 멀티 이미지 수정 |
+| `EditGoodsHeaderFooter` | 상품상세 헤더/풋터 수정 |
+
+### ItemsOptions (12개) — **옵션/재고 수정**
+| Method | 설명 |
+|---|---|
+| `EditGoodsOption` | 단일형 옵션 수정 |
+| `EditGoodsTextOption` | 텍스트 옵션 수정 |
+| `EditGoodsInventory` | 옵션 정보 수정 |
+| `EditCommonGoodsInventory` | 옵션 정보 수정 (공통) |
+| `InsertInventoryDataUnit` | 조합형 옵션 개별 등록 |
+| `UpdateInventoryDataUnit` | 조합형 옵션 개별 수정 |
+| `DeleteInventoryDataUnit` | 조합형 옵션 개별 삭제 |
+| `UpdateInventoryQtyUnit` | 조합형 옵션 개별 수량 수정 |
+| `UpdateInventoryQtyPlusUnit` | 조합형 옵션 수량 가감 (+/-) |
+| `InsertInventoryDataBulk` | 재고 정보 대량 등록 |
+| `UpdateInventoryDataBulk` | 재고 정보 대량 수정 |
+| `EditMoveGoodsInventory` | MOVE 옵션 정보 수정 |
+
+### ItemsLookup (7개) — **조회**
+| Method | 설명 |
+|---|---|
+| `GetItemDetailInfo` | 상품 상세 정보 조회 |
+| `GetAllGoodsInfo` | 전체 상품 조회 |
+| `GetGoodsOptionInfo` | 옵션 정보 조회 |
+| `GetGoodsInventoryInfo` | **재고 정보 조회** |
+| `GetSellerDeliveryGroupInfo` | 배송비 정보 조회 |
+| `GetMoveItemDetailInfo` | MOVE 상품 상세 조회 |
+| `RequestFileDownload` | 정보 다운로드 요청 |
+
+### 기타 서비스
+| Service | 주요 용도 |
+|---|---|
+| `ShippingBasic` | 배송/클레임 처리 (11개 메서드) |
+| `Claim` | 취소/클레임 처리 (3개) |
+| `CSCenter` | 문의 메시지 (2개) |
+| `CommonInfoLookup` | 카테고리/브랜드/메이커 조회 (3개) |
+| `CertificationAPI` | API 키 발급 (1개) |
+| `ECouponAuth` | 이쿠폰 인증 (2개) |
+| `DPCShipping` | 해외배송 (4개) |
+
+---
+
+## 4. v2a 수정 방향
+
+### 현재 문제
+- v2a가 `ItemsBasic.UpdateGoods`로 ItemQty, ItemDescription을 수정 시도
+- UpdateGoods는 해당 필드를 수락(ResultCode=0)하지만 **실제로 무시**
+- 14초 대기 후에도 값 미반영 → propagation delay가 아닌 **필드 무시**
+
+### 수정 필요 사항
+
+| 필드 | 기존 (잘못됨) | 수정 후 (올바름) |
 |---|---|---|
-| `ItemsBasic` | ✅ | SetNewGoods, UpdateGoods 응답 확인 |
-| `ItemsLookup` | ✅ | GetItemDetailInfo, GetAllGoodsInfo, GetGoodsOptionInfo 응답 확인 |
-| `ItemsOrder` | ✅ (메서드 미확인) | "Can't find method" 반환 = 서비스는 존재 |
-| `ItemsOptions` | ✅ (메서드 미확인) | "Can't find method" 반환 = 서비스는 존재 |
-| `ShippingBasic` | ✅ | GetShippingInfo 응답 확인 |
-| `ItemsInventory` | ❌ | "Can't find service Name ItemsInventory" |
-| `ItemsStock` | ❌ | "Can't find service Name ItemsStock" |
-| `ItemsGift` | ❌ | "Can't find service Name ItemsGift" |
-| `ItemsPromotion` | ❌ | "Can't find service Name ItemsPromotion" |
-| `GoodsOption` | ❌ | "Can't find service Name GoodsOption" |
+| ItemQty | `ItemsBasic.UpdateGoods` | **`ItemsOrder.SetGoodsPriceQty`** |
+| ItemDescription | `ItemsBasic.UpdateGoods` | **`ItemsContents.EditGoodsContents`** |
+| ItemTitle | `ItemsBasic.UpdateGoods` | 그대로 유지 ✅ |
+
+### read-back 수정
+- ItemQty 수정 후 검증: `ItemsLookup.GetGoodsInventoryInfo` 또는 `GetItemDetailInfo`
+- ItemDescription 수정 후 검증: `ItemsLookup.GetItemDetailInfo` (ItemDetail 필드)
 
 ---
 
-## 4. ItemsBasic 서비스 내 확인된 메서드
+## 5. 실험 근거
 
-| Method | 존재 여부 | 비고 |
-|---|---|---|
-| `SetNewGoods` | ✅ | 신규 등록 (금지 대상) |
-| `UpdateGoods` | ✅ | 기존 수정 (현재 사용 중) |
-| `GetGoodsInfo` | ❌ | 미존재 |
-| `SetGoodsSaleYN` | ❌ | 미존재 |
-| `SetItemQty` | ❌ | 미존재 |
-| `SetStandNormalItemQty` | ❌ | 미존재 |
-| `UpdateGoodsQty` | ❌ | 미존재 |
-| `SetDescription` | ❌ | 미존재 |
-| `UpdateDescription` | ❌ | 미존재 |
+### 5-1. UpdateGoods ItemTitle 즉시 반영
+- 출처: `backend/logs/qoo10-update-overwrite-proof-97437740.json` (2026-03-04)
+- readBackAttempts: 1 (즉시 반영)
 
----
+### 5-2. UpdateGoods ItemQty 반영 안 됨
+- 출처: `backend/logs/v2a-field-discovery-v2a-1772680046718-e1gq3.jsonl` (2026-03-05)
+- write_ok: true, ResultCode: 0, 14,000ms / 4 reads → 원본값 유지
+- ChangedDate 갱신됨 → API 수락됐지만 해당 필드 무시
 
-## 5. ItemsLookup 서비스 내 확인된 메서드
+### 5-3. UpdateGoods ItemDescription 반영 안 됨
+- 동일 실험, 동일 결론
 
-| Method | 존재 여부 | 비고 |
-|---|---|---|
-| `GetItemDetailInfo` | ✅ | 상품 상세 조회 (현재 사용) |
-| `GetAllGoodsInfo` | ✅ | 상태별 전체 상품 수 조회 |
-| `GetGoodsOptionInfo` | ✅ | 옵션 조회 (현재 테스트 아이템 옵션 없음 → ResultObject: []) |
-| `GetGoodsList` | ❌ | 미존재 |
-| `GetStockInfo` | ❌ | 미존재 |
-| `GetInventoryList` | ❌ | 미존재 |
-| `GetGoodsDescription` | ❌ | 미존재 |
+### 5-4. 공식 API 목록 확인
+- 출처: `swe_DynamicDataService.asmx/ExecuteToDataTable` (`QAPI.GetQAPIMethodList`)
+- 4,929개 메서드 중 공개 항목 파싱
+- ItemsOrder.SetGoodsPriceQty: "판매가격/재고수량/판매종료일수정" 명시
+- ItemsContents.EditGoodsContents: "상품상세 컨텐츠 수정" 명시
 
 ---
 
-## 6. GetItemDetailInfo 응답 필드 목록
+## 6. 미조사 항목
 
-```
-ItemNo, ItemStatus, ItemTitle, MainCatCd, MainCatNm,
-FirstSubCatCd, FirstSubCatNm, SecondSubCatCd, SecondSubCatNm,
-SellerCode, IndustrialCode, RetailPrice, SellPrice, SettlePrice,
-ItemQty, ExpireDate, ManufacturerCd, ManufacturerNm,
-BrandCd, BrandNm, AdultYN, ShippingNo, ContactTel,
-ItemDetail, ImageUrl, ListedDate, ChangedDate
-```
+- [ ] `ItemsOrder.SetGoodsPriceQty` 파라미터 상세 (m_no=10024)
+- [ ] `ItemsContents.EditGoodsContents` 파라미터 상세 (m_no=10027)
+- [ ] `ItemsLookup.GetGoodsInventoryInfo` 응답 구조
+- [ ] QSM 웹 UI 네트워크 트래픽 캡처 (교차 검증용)
 
 ---
 
-## 7. 실험 데이터 (근거)
-
-### 7-1. ItemTitle 즉시 반영 확인
-- 출처: `backend/logs/qoo10-update-overwrite-proof-97437740.json`
-- 날짜: 2026-03-04
-- UpdateGoods → GetItemDetailInfo 1회 read → 매칭 성공 (readBackAttempts: 1)
-- 3회 독립 실험 모두 동일 결과
-
-### 7-2. ItemQty 반영 안 됨 확인
-- 출처: `backend/logs/v2a-field-discovery-v2a-1772680046718-e1gq3.jsonl`
-- 날짜: 2026-03-05
-- UpdateGoods (ItemQty: 99 → 1), ResultCode: 0, ResultMsg: "SUCCESS"
-- 즉시 + 2s + 4s + 8s 대기 총 4회 read-back → final_read_value: "99" (원본)
-- ChangedDate는 갱신됨 → API 수락은 됨, 반영은 안 됨
-
-### 7-3. ItemDescription 반영 안 됨 확인
-- 출처: 동일 실험 로그 (ItemDescription trial)
-- UpdateGoods (marker 추가), ResultCode: 0
-- 14,000ms / 4 reads → 마커 미발견, final_read_value 원본 그대로
-
-### 7-4. 2026-03-05 현재 실제 상태 (실험 종료 후 1시간 뒤 확인)
-```json
-{
-  "ItemQty": "99",
-  "ItemDetail": "<p>Test item for debugging SetNewGoods</p>",
-  "ChangedDate": "2026-03-05 12:07:41"
-}
-```
-
----
-
-## 8. 가설 및 해석
-
-### 가설 A: 필드 레벨 권한 제한 (가장 유력)
-- Qoo10 판매자 계정 등급에 따라 UpdateGoods에서 수정 가능한 필드가 제한될 수 있음
-- ItemTitle은 허용, ItemQty/ItemDescription은 별도 관리 채널(웹 UI 전용)일 가능성
-- **근거:** ItemStatus "S2" (판매중) 상태에서 수량 변경 제한이 걸릴 수 있음
-
-### 가설 B: S2 상태 필드 잠금
-- 판매 중(S2) 상태의 상품은 수량·설명을 API로 직접 수정 불가하고 별도 재고 관리 플로우 필요
-- **근거:** ItemStatus S2 + API 수락 but 미반영 패턴
-
-### 가설 C: QAPIVersion 문제
-- UpdateGoods에는 1.0 버전 사용 중. 일부 필드는 1.1+에서만 수정 가능할 수 있음
-- **근거:** SetNewGoods는 1.1 사용, UpdateGoods는 1.0 사용
-
-### 가설 D: ItemsOptions 서비스를 통한 재고 관리
-- 옵션이 없는 단순 상품도 ItemsOptions 서비스가 재고 관리를 담당할 수 있음
-- **현 상태:** ItemsOptions 서비스 존재 확인됨, 유효 메서드 미발견
-
----
-
-## 9. 권장 다음 실험
-
-우선순위 순:
-
-1. **QAPIVersion 1.1로 UpdateGoods 재시도** — ItemQty, ItemDescription 반영되는지 확인
-2. **ItemStatus S1(판매 대기) 상태 아이템으로 동일 실험** — S2 잠금 가설 검증
-3. **ItemsOptions 메서드 체계적 탐색** — 실제 재고 관리 API 존재 여부
-4. **Qoo10 QSM 웹 UI 네트워크 트래픽 캡처** — 실제 수량/설명 수정 시 어떤 API 호출하는지 확인
-5. **UpdateGoods QAPIVersion 1.1 + 필드 단독 전송** — 최소 페이로드로 재시도
-
----
-
-## 10. 미조사 항목 (Seller Web UI 트래픽)
-
-> 이 섹션은 Qoo10 QSM 셀러 웹 UI에서 상품 수정 시 실제 호출되는 API 엔드포인트 분석을 위한 공간.
-> 브라우저 DevTools Network 탭 캡처 필요 (현재 미수행).
-
-수행 방법:
-1. https://qsm.qoo10.jp 로그인
-2. 상품 수정 페이지 열기 (ItemCode: 1194045329)
-3. 수량, 설명, 제목 각각 수정 후 저장
-4. Network 탭에서 요청 URL + 파라미터 캡처
-5. 이 문서 업데이트
-
----
-
-_Last updated: 2026-03-05_
+_Last updated: 2026-03-05 — Official API list obtained via internal document service_

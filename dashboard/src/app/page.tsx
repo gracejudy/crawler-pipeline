@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Tab = "overview" | "registration" | "tasks" | "logs" | "chat";
+type ChatMode = "judy" | "aegis" | "group";
 type LogLevel = "INFO" | "ERROR";
 
 const tabs: { key: Tab; label: string }[] = [
@@ -313,6 +314,8 @@ export default function Home() {
   const [chatHealth, setChatHealth] = useState<any>(null);
   const [sessionStatus, setSessionStatus] = useState<any>(null);
   const [isSending, setIsSending] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatMode>("judy");
+  const [aegisHistory, setAegisHistory] = useState<any[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [logs, setLogs] = useState<{ ts: string; level: LogLevel; event: string; detail?: string }[]>([]);
   const [projectOverview, setProjectOverview] = useState(initialProjectOverview);
@@ -374,7 +377,13 @@ export default function Home() {
   const loadHistory = async () => {
     const r = await fetch("/api/openclaw/history", { cache: "no-store" });
     const d = await r.json();
-    setHistory(d.messages || []);
+    setHistory((d.messages || []).map((m: any) => ({ ...m, agent: "judy" })));
+  };
+
+  const loadAegisHistory = async () => {
+    const r = await fetch("/api/openclaw/aegis-history", { cache: "no-store" });
+    const d = await r.json();
+    setAegisHistory(d.messages || []);
   };
 
   const runHealth = async () => {
@@ -400,9 +409,13 @@ export default function Home() {
   useEffect(() => {
     if (tab !== "chat") return;
     loadHistory();
-    const t = setInterval(loadHistory, 3000);
+    loadAegisHistory();
+    const t = setInterval(() => {
+      loadHistory();
+      if (chatMode === "aegis" || chatMode === "group") loadAegisHistory();
+    }, 3000);
     return () => clearInterval(t);
-  }, [tab]);
+  }, [tab, chatMode]);
 
   useEffect(() => {
     if (!jobId) return;
@@ -436,19 +449,11 @@ export default function Home() {
     setJob({ status: "running" });
   };
 
-  const sendPrompt = async (text?: string) => {
-    console.log("SEND_TRIGGERED");
-    const message = (text ?? prompt).trim();
-    if (!message || isSending) return;
-
-    addLog("INFO", "chat.send.attempt", message.slice(0, 80));
-    setIsSending(true);
-
+  const sendToAgent = async (endpoint: string, message: string) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-
     try {
-      const r = await fetch(apiUrl("/api/openclaw/send"), {
+      const r = await fetch(apiUrl(endpoint), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message }),
@@ -459,17 +464,37 @@ export default function Home() {
         const rid = d?.requestId ? ` (requestId: ${d.requestId})` : "";
         throw new Error(`${d?.error || d?.data?.error || "send failed"}${rid}`);
       }
+      return d;
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
 
+  const sendPrompt = async (text?: string) => {
+    console.log("SEND_TRIGGERED");
+    const message = (text ?? prompt).trim();
+    if (!message || isSending) return;
+
+    addLog("INFO", "chat.send.attempt", message.slice(0, 80));
+    setIsSending(true);
+
+    try {
+      if (chatMode === "judy" || chatMode === "group") {
+        await sendToAgent("/api/openclaw/send", message);
+        setTimeout(loadHistory, 500);
+      }
+      if (chatMode === "aegis" || chatMode === "group") {
+        await sendToAgent("/api/openclaw/aegis-send", message);
+        setTimeout(loadAegisHistory, 500);
+      }
       setPrompt("");
-      addLog("INFO", "chat.send.success", `status=${d?.status ?? "?"}`);
-      setTimeout(loadHistory, 500);
+      addLog("INFO", "chat.send.success", `mode=${chatMode}`);
     } catch (e: any) {
       const msg = e?.name === "AbortError" ? "Chat send timeout (>10s)" : `Chat send failed: ${e.message}`;
       setToast(msg);
       addLog("ERROR", "chat.send.error", msg);
       setTimeout(() => setToast(null), 3500);
     } finally {
-      clearTimeout(timeout);
       setIsSending(false);
     }
   };
@@ -810,36 +835,77 @@ export default function Home() {
 
         {tab === "chat" && (
           <div className="flex flex-col gap-3 h-[65vh] max-h-[65vh]">
-            <div className="glass rounded-xl p-2 text-xs">
-              <div>OpenClaw Base: {chatConfig?.base || "(unset)"}</div>
-              <div>Session: {chatConfig?.session || "(unset)"}</div>
-              <div>Token: {chatConfig?.hasToken ? "configured" : "missing"}</div>
-              <div>Deploy Env: {chatConfig?.deploy?.vercelEnv || "local"}</div>
-              <div>Deploy Branch: {chatConfig?.deploy?.gitBranch || "-"}</div>
-              <div>Deploy Commit: {(chatConfig?.deploy?.gitCommit || "-").slice(0, 12)}</div>
-              <div>Deploy ID: {(chatConfig?.deploy?.deploymentId || "-").slice(0, 24)}</div>
-              <div>Deploy URL: {chatConfig?.deploy?.vercelUrl || "-"}</div>
-              <div className="mt-2 flex items-center gap-2">
-                <button onClick={runHealth} className="text-xs px-3 py-1 rounded-lg bg-white/10">Health Check</button>
-                <span>{chatHealth ? `${chatHealth.ok ? "OK" : "FAIL"} ${chatHealth.latencyMs}ms` : "-"}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {["Build Dashboard Task 0", "Run Registration", "Summarize Errors"].map((t) => (
-                <button key={t} onClick={() => sendPrompt(t)} className="text-xs px-3 py-2 rounded-xl bg-white/10">{t}</button>
+            {/* Mode toggle */}
+            <div className="flex gap-1 rounded-xl bg-black/20 p-1">
+              {(["judy", "aegis", "group"] as ChatMode[]).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setChatMode(m)}
+                  className={`flex-1 text-xs py-1.5 rounded-lg font-semibold transition-colors ${chatMode === m ? "bg-cyan-400 text-black" : "bg-white/10 text-slate-300"}`}
+                >
+                  {m === "judy" ? "💎 Judy" : m === "aegis" ? "🛡️ Aegis" : "👥 Group"}
+                </button>
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden rounded-xl bg-black/20 p-3">
-              {history.map((m, i) => (
-                <div key={i} className="mb-2 text-sm">
-                  <b className="text-cyan-300">{m.role || "msg"}</b>
-                  <div className="whitespace-pre-wrap break-words">{m.text || ""}</div>
+            {/* Config info (collapsed) */}
+            <details className="glass rounded-xl p-2 text-xs">
+              <summary className="cursor-pointer text-slate-300">Connection Info</summary>
+              <div className="mt-2 space-y-1">
+                <div>Judy Base: {chatConfig?.base || "(unset)"} | Session: {chatConfig?.session || "(unset)"}</div>
+                <div>Aegis Base: {process.env.NEXT_PUBLIC_AEGIS_BASE_URL || "(set via env)"}</div>
+                <div className="mt-1 flex items-center gap-2">
+                  <button onClick={runHealth} className="px-3 py-1 rounded-lg bg-white/10">Health Check</button>
+                  <span>{chatHealth ? `${chatHealth.ok ? "✅" : "❌"} ${chatHealth.latencyMs}ms` : "-"}</span>
                 </div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
+              </div>
+            </details>
+
+            {/* Group view: side-by-side or interleaved */}
+            {chatMode === "group" ? (
+              <div className="flex-1 overflow-hidden flex gap-2">
+                {/* Judy column */}
+                <div className="flex-1 flex flex-col overflow-hidden rounded-xl bg-black/20">
+                  <div className="text-xs text-cyan-300 font-semibold px-3 pt-2 pb-1 border-b border-white/10">💎 Judy</div>
+                  <div className="flex-1 overflow-y-auto p-2">
+                    {history.map((m, i) => (
+                      <div key={i} className="mb-2 text-xs">
+                        <b className={m.role === "user" ? "text-slate-300" : "text-cyan-300"}>{m.role === "user" ? "you" : "judy"}</b>
+                        <div className="whitespace-pre-wrap break-words">{m.text || ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Aegis column */}
+                <div className="flex-1 flex flex-col overflow-hidden rounded-xl bg-black/20">
+                  <div className="text-xs text-amber-300 font-semibold px-3 pt-2 pb-1 border-b border-white/10">🛡️ Aegis</div>
+                  <div className="flex-1 overflow-y-auto p-2">
+                    {aegisHistory.length === 0 && (
+                      <div className="text-xs text-slate-400 p-2">No history (check AEGIS_BASE_URL env)</div>
+                    )}
+                    {aegisHistory.map((m, i) => (
+                      <div key={i} className="mb-2 text-xs">
+                        <b className={m.role === "user" ? "text-slate-300" : "text-amber-300"}>{m.role === "user" ? "you" : "aegis"}</b>
+                        <div className="whitespace-pre-wrap break-words">{m.text || ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Single agent view */
+              <div className="flex-1 overflow-y-auto overflow-x-hidden rounded-xl bg-black/20 p-3">
+                {(chatMode === "judy" ? history : aegisHistory).map((m, i) => (
+                  <div key={i} className="mb-2 text-sm">
+                    <b className={m.role === "user" ? "text-slate-300" : chatMode === "judy" ? "text-cyan-300" : "text-amber-300"}>
+                      {m.role === "user" ? "you" : chatMode}
+                    </b>
+                    <div className="whitespace-pre-wrap break-words">{m.text || ""}</div>
+                  </div>
+                ))}
+                <div ref={chatEndRef} />
+              </div>
+            )}
 
             {parsedProposal && (
               <div className="glass rounded-xl p-3">
@@ -856,7 +922,8 @@ export default function Home() {
               <input
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Prompt to current OpenClaw session"
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendPrompt()}
+                placeholder={chatMode === "group" ? "Send to both judy & aegis" : `Prompt to ${chatMode}`}
                 className="flex-1 rounded-xl px-3 py-3 bg-white/10 outline-none"
               />
               <button
@@ -864,7 +931,7 @@ export default function Home() {
                 disabled={isSending}
                 className="px-4 rounded-xl bg-cyan-400 text-black font-bold disabled:opacity-40"
               >
-                {isSending ? "Sending..." : "Send"}
+                {isSending ? "..." : "Send"}
               </button>
             </div>
           </div>

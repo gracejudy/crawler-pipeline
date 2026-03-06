@@ -252,6 +252,9 @@ const initialProjectOverview: ProjectItem[] = [
       { id: "DASH-T20", title: "Detail panel read-only", description: "Diff/API 요약/로그/런이력 포함 슬라이드오버 구현", status: "DONE" as TaskStatus },
       { id: "DASH-T21", title: "Metrics aggregation validation", description: "KPI/ingestion 집계 규칙 lightweight 검증 로직 반영", status: "DONE" as TaskStatus },
       { id: "DASH-T22", title: "Visual polish mobile-first", description: "모바일 가독성/배지/간격 튜닝", status: "DONE" as TaskStatus },
+      { id: "DASH-T23", title: "Chat 탭 session key + token usage 헤더 표시", description: "헤더 영역에 현재 세션 키와 누적 토큰 사용량 표시", status: "DONE" as TaskStatus, deployedOnce: true },
+      { id: "DASH-T24", title: "Chat 탭 Aegis 연동 (aegis-send / aegis-history 프록시)", description: "Aegis 에이전트 전용 send/history API 프록시 라우트 추가 및 Chat 탭 연결", status: "DONE" as TaskStatus, deployedOnce: true },
+      { id: "DASH-T25", title: "Chat 탭 그룹챗 모드 (judy / aegis / group)", description: "judy·aegis·group 세 가지 채팅 모드 전환 UI 및 그룹 메시지 라우팅 구현", status: "DONE" as TaskStatus, deployedOnce: true },
     ],
     issues: [
       {
